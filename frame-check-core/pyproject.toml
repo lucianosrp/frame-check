@@ -1,0 +1,19 @@
+[project]
+name = "frame-check-core"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Luciano Scarpulla", email = "luciano@wingx-advance.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+]
+
+[project.scripts]
+frame-check-core = "frame_check_core:main"
+
+
+[build-system]
+requires = ["uv_build>=0.8.12,<0.9.0"]
+build-backend = "uv_build"

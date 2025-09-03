@@ -1,0 +1,19 @@
+[project]
+name = "frame-check-lsp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Luciano Scarpulla", email = "luciano@wingx-advance.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "pygls==2.0.0a6",
+]
+
+[project.scripts]
+frame-check-lsp = "frame_check_lsp:main"
+
+[build-system]
+requires = ["uv_build>=0.8.12,<0.9.0"]
+build-backend = "uv_build"

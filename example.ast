@@ -1,0 +1,227 @@
+Module(
+    body=[
+        Import(
+            names=[
+                alias(name='pandas', asname='pd')]),
+        Assign(
+            targets=[
+                Name(id='df', ctx=Store())],
+            value=Call(
+                func=Attribute(
+                    value=Name(id='pd', ctx=Load()),
+                    attr='DataFrame',
+                    ctx=Load()),
+                args=[
+                    Dict(
+                        keys=[
+                            Constant(value='Name'),
+                            Constant(value='Age'),
+                            Constant(value='City'),
+                            Constant(value='Salary')],
+                        values=[
+                            List(
+                                elts=[
+                                    Constant(value='John'),
+                                    Constant(value='Anna'),
+                                    Constant(value='Peter'),
+                                    Constant(value='Linda')],
+                                ctx=Load()),
+                            List(
+                                elts=[
+                                    Constant(value=28),
+                                    Constant(value=34),
+                                    Constant(value=29),
+                                    Constant(value=42)],
+                                ctx=Load()),
+                            List(
+                                elts=[
+                                    Constant(value='New York'),
+                                    Constant(value='Paris'),
+                                    Constant(value='Berlin'),
+                                    Constant(value='London')],
+                                ctx=Load()),
+                            List(
+                                elts=[
+                                    Constant(value=65000),
+                                    Constant(value=70000),
+                                    Constant(value=62000),
+                                    Constant(value=85000)],
+                                ctx=Load())])],
+                keywords=[])),
+        Expr(
+            value=Subscript(
+                value=Name(id='df', ctx=Load()),
+                slice=Constant(value='NonExistentColumn'),
+                ctx=Load())),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nSelect a column:')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Subscript(
+                        value=Name(id='df', ctx=Load()),
+                        slice=Constant(value='Name'),
+                        ctx=Load())],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nFilter rows where Age > 30:')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Subscript(
+                        value=Name(id='df', ctx=Load()),
+                        slice=Compare(
+                            left=Subscript(
+                                value=Name(id='df', ctx=Load()),
+                                slice=Constant(value='Age'),
+                                ctx=Load()),
+                            ops=[
+                                Gt()],
+                            comparators=[
+                                Constant(value=30)]),
+                        ctx=Load())],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nAverage salary by city:')],
+                keywords=[])),
+        Assign(
+            targets=[
+                Name(id='grouped', ctx=Store())],
+            value=Call(
+                func=Attribute(
+                    value=Subscript(
+                        value=Call(
+                            func=Attribute(
+                                value=Name(id='df', ctx=Load()),
+                                attr='groupby',
+                                ctx=Load()),
+                            args=[
+                                Constant(value='City')],
+                            keywords=[]),
+                        slice=Constant(value='Salary'),
+                        ctx=Load()),
+                    attr='mean',
+                    ctx=Load()),
+                args=[],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Name(id='grouped', ctx=Load())],
+                keywords=[])),
+        Assign(
+            targets=[
+                Subscript(
+                    value=Name(id='df', ctx=Load()),
+                    slice=Constant(value='Bonus'),
+                    ctx=Store())],
+            value=BinOp(
+                left=Subscript(
+                    value=Name(id='df', ctx=Load()),
+                    slice=Constant(value='Salary'),
+                    ctx=Load()),
+                op=Mult(),
+                right=Constant(value=0.1))),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nDataFrame with bonus column:')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Name(id='df', ctx=Load())],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nSorted by Age (descending):')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Call(
+                        func=Attribute(
+                            value=Name(id='df', ctx=Load()),
+                            attr='sort_values',
+                            ctx=Load()),
+                        args=[
+                            Constant(value='Age')],
+                        keywords=[
+                            keyword(
+                                arg='ascending',
+                                value=Constant(value=False))])],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nBonus column:')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Subscript(
+                        value=Name(id='df', ctx=Load()),
+                        slice=Constant(value='Bonus'),
+                        ctx=Load())],
+                keywords=[])),
+        Assign(
+            targets=[
+                Name(id='df', ctx=Store())],
+            value=Call(
+                func=Attribute(
+                    value=Name(id='df', ctx=Load()),
+                    attr='assign',
+                    ctx=Load()),
+                args=[],
+                keywords=[
+                    keyword(
+                        arg='YearlyBonus',
+                        value=Lambda(
+                            args=arguments(
+                                posonlyargs=[],
+                                args=[
+                                    arg(arg='x')],
+                                kwonlyargs=[],
+                                kw_defaults=[],
+                                defaults=[]),
+                            body=BinOp(
+                                left=Subscript(
+                                    value=Name(id='x', ctx=Load()),
+                                    slice=Constant(value='Bonus'),
+                                    ctx=Load()),
+                                op=Mult(),
+                                right=Constant(value=12))))])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Constant(value='\nDataFrame with yearly bonus column:')],
+                keywords=[])),
+        Expr(
+            value=Call(
+                func=Name(id='print', ctx=Load()),
+                args=[
+                    Name(id='df', ctx=Load())],
+                keywords=[]))],
+    type_ignores=[])
