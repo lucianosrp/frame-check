@@ -1,11 +1,12 @@
 import ast
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import NamedTuple
 
 from frame_check_core._models import WrappedNode
 
 
 @dataclass
-class DataFrameAssignment:
+class FrameInstance:
     _node: ast.Assign
     lineno: int
     id: str
@@ -19,7 +20,7 @@ class DataFrameAssignment:
         return [key.value for key in keys.val] if keys.val is not None else []
 
     @classmethod
-    def from_node(cls, node: ast.Assign) -> "DataFrameAssignment | None":
+    def from_node(cls, node: ast.Assign) -> "FrameInstance | None":
         n = WrappedNode[ast.Assign](node)
         call_args = n.get("value").get("args")
         call_keywords = n.get("value").get("keywords")
@@ -58,16 +59,41 @@ class ColumnAccess:
     _node: ast.Subscript
     lineno: int
     id: str
-    frame: DataFrameAssignment
+    frame: FrameInstance
+
+
+class FrameHistoryKey(NamedTuple):
+    lineno: int
+    id: str
+
+
+@dataclass
+class FrameHistory:
+    frames: dict[FrameHistoryKey, FrameInstance] = field(default_factory=dict)
+
+    def add(self, frame: FrameInstance):
+        key = FrameHistoryKey(frame.lineno, frame.id)
+        self.frames[key] = frame
+
+    def get_at(self, lineno: int, id: str) -> FrameInstance | None:
+        return self.frames.get(FrameHistoryKey(lineno, id))
+
+    def get_before(self, lineno: int, id: str) -> FrameInstance | None:
+        keys = sorted(self.frames.keys(), key=lambda k: k.lineno, reverse=True)
+        for key in keys:
+            if key.lineno < lineno and key.id == id:
+                return self.frames[key]
+        return None
+
+    def frame_keys(self) -> list[str]:
+        return [frame.id for frame in self.frames.values()]
 
 
 class FrameChecker(ast.NodeVisitor):
-    """Find pandas imports and their aliases."""
-
     def __init__(self):
         self.import_aliases = {}
         self.dict_data: dict[str, DictAssignment] = {}
-        self.frames: dict[str, DataFrameAssignment] = {}
+        self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
 
     @staticmethod
@@ -75,10 +101,10 @@ class FrameChecker(ast.NodeVisitor):
         return isinstance(node.value, ast.Dict)
 
     def maybe_get_df(self, node: ast.Assign) -> ast.Assign | None:
-        """Check if an assignment creates a pandas DataFrame."""
+        """Check if an assignment creates a pandas Frame."""
         func = WrappedNode(node.value).get("func")
         val = func.get("value")
-        # Check if this is a pandas DataFrame constructor
+        # Check if this is a pandas Frame constructor
         if (
             val.get("id").val in self.import_aliases.values()
             and func.get("attr").val == "DataFrame"
@@ -90,8 +116,8 @@ class FrameChecker(ast.NodeVisitor):
     def maybe_assign_df(self, node: ast.Assign) -> bool:
         maybe_df = self.maybe_get_df(node)
         if maybe_df is not None:
-            if frame := DataFrameAssignment.from_node(maybe_df):
-                self.frames[frame.id] = frame
+            if frame := FrameInstance.from_node(maybe_df):
+                self.frames.add(frame)
                 return True
         return False
 
@@ -121,11 +147,13 @@ class FrameChecker(ast.NodeVisitor):
 
     def visit_Subscript(self, node: ast.Subscript):
         n = WrappedNode[ast.Subscript](node)
-        if (frame_id := n.get("value").get("id").val) in self.frames:
+        if (frame_id := n.get("value").get("id").val) in self.frames.frame_keys():
             if isinstance(const := n.get("slice").val, ast.Constant):
-                self.column_accesses[const.value] = ColumnAccess(
-                    node, node.lineno, const.value, self.frames[frame_id]
-                )
+                frame = self.frames.get_before(node.lineno, frame_id)
+                if frame is not None:
+                    self.column_accesses[const.value] = ColumnAccess(
+                        node, node.lineno, const.value, frame
+                    )
 
         self.generic_visit(node)
 
@@ -146,17 +174,17 @@ def parse_file(filename: str) -> ast.AST:
     return ast.parse(source, filename=filename)
 
 
-# Example usage
-if __name__ == "__main__":
-    tree = parse_file("../../../example.py")
+def main():
+    import sys
+
+    tree = parse_file(sys.argv[1])
 
     fc = FrameChecker()
     fc.visit(tree)
-
-    fc.frames
+    fc.frames.get_before(45, "df")
     fc.column_accesses
     for access in fc.column_accesses.values():
         if access.id not in access.frame.columns:
             print(
-                f"TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
+                f"line[{access.lineno}]: TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
             )

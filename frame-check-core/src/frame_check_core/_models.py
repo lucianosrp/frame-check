@@ -26,7 +26,7 @@ class WrappedNode[T: SupportedNode | None]:
 
     This class wraps AST nodes and provides type-safe access to their attributes
     through the get() method. If an attribute doesn't exist, it returns an empty
-    WrappedNode instead of raising an AttributeError. This allow for method chaining.
+    WrappedNode instead of raising an AttributeError. This allows for method chaining.
 
 
     Type parameter:

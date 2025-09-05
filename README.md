@@ -34,7 +34,7 @@ line[32]: TypeError: df["col_a"]
                     dataframe (df) was defined at line[10]:
 
                     |10  df = pd.DataFrame({         <- here
-                        --
+                         --
                     |11      "col_b": [4, 5, 6],
                     |12      "col_c": [7, 8, 9]
                     |13  })
