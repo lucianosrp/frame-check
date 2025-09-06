@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 from frame_check_core._models import WrappedNode
 
@@ -10,37 +10,14 @@ class FrameInstance:
     _node: ast.Assign
     lineno: int
     id: str
-    args: list[WrappedNode[ast.arg]]
+    data_arg: WrappedNode[ast.Dict | None]
     keywords: list[WrappedNode[ast.keyword]]
 
     @property
     def columns(self) -> list[str]:
-        arg = self.args[0]
+        arg = self.data_arg
         keys = arg.get("keys")
         return [key.value for key in keys.val] if keys.val is not None else []
-
-    @classmethod
-    def from_node(cls, node: ast.Assign) -> "FrameInstance | None":
-        n = WrappedNode[ast.Assign](node)
-        call_args = n.get("value").get("args")
-        call_keywords = n.get("value").get("keywords")
-        name = n.targets[0].get("id")
-
-        if (
-            name.val is not None
-            and call_args.val is not None
-            and call_keywords.val is not None
-        ):
-            return cls(
-                node,
-                node.lineno,
-                name.val,
-                [WrappedNode[ast.arg](arg) for arg in call_args.val],  # ty: ignore
-                [
-                    WrappedNode[ast.keyword](kw)
-                    for kw in call_keywords.val  # ty: ignore
-                ],
-            )
 
 
 @dataclass
@@ -95,6 +72,7 @@ class FrameChecker(ast.NodeVisitor):
         self.dict_data: dict[str, DictAssignment] = {}
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
+        self.definitions: dict[str, ast.AST] = {}
 
     @staticmethod
     def _is_dict(node: ast.Assign) -> bool:
@@ -113,27 +91,53 @@ class FrameChecker(ast.NodeVisitor):
 
         return None
 
+    def resolve_args(
+        self, args: WrappedNode[list[ast.Name | ast.Dict]]
+    ) -> WrappedNode[ast.Dict | None]:
+        arg0 = args[0]
+        if isinstance(arg0_val := arg0.val, ast.Name):
+            def_node = self.definitions.get(arg0_val.id)
+            return WrappedNode(def_node)
+        else:
+            return cast(WrappedNode[ast.Dict | None], arg0)
+
+    def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":
+        n = WrappedNode[ast.Assign](node)
+        data_arg = self.resolve_args(n.get("value").get("args"))
+        call_keywords = n.get("value").get("keywords")
+        name = n.targets[0].get("id")
+
+        if (
+            name.val is not None
+            and data_arg.val is not None
+            and call_keywords.val is not None
+        ):
+            return FrameInstance(
+                node,
+                node.lineno,
+                name.val,
+                data_arg,
+                [
+                    WrappedNode[ast.keyword](kw)
+                    for kw in call_keywords.val  # ty: ignore
+                ],
+            )
+
     def maybe_assign_df(self, node: ast.Assign) -> bool:
         maybe_df = self.maybe_get_df(node)
         if maybe_df is not None:
-            if frame := FrameInstance.from_node(maybe_df):
+            if frame := self.new_frame_instance(maybe_df):
                 self.frames.add(frame)
                 return True
         return False
 
-    def maybe_assign_dict(self, node: ast.Assign) -> bool:
-        if self._is_dict(node):
-            dict_def = WrappedNode[ast.Name](node.targets[0])
-            dict_assignment = DictAssignment.from_node(node)
-            if dict_assignment is not None:
-                if val := dict_def.get("id").val:
-                    self.dict_data[val] = dict_assignment
-                    return True
-        return False
-
     def visit_Assign(self, node: ast.Assign):
-        if not self.maybe_assign_dict(node):
-            self.maybe_assign_df(node)
+        # Store definitions:
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self.definitions[target.id] = node.value
+
+        self.maybe_assign_df(node)
 
         self.generic_visit(node)
 
@@ -177,14 +181,20 @@ def parse_file(filename: str) -> ast.AST:
 def main():
     import sys
 
-    tree = parse_file(sys.argv[1])
+    path = sys.argv[1]
+    tree = parse_file(path)
 
     fc = FrameChecker()
     fc.visit(tree)
-    fc.frames.get_before(45, "df")
-    fc.column_accesses
+    # print(fc.definitions.keys())
+    # fc.frames.get_before(45, "df")
+    # fc.column_accesses
     for access in fc.column_accesses.values():
         if access.id not in access.frame.columns:
+            print()
+            print("-" * 78)
+            print(path + f":{access.lineno}")
             print(
                 f"line[{access.lineno}]: TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
             )
+            print(f"\t\tWith data defined at {access.frame.data_arg.get('lineno').val}")
