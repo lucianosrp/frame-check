@@ -1,4 +1,5 @@
 import ast
+from operator import getitem
 from typing import Any, Literal, overload
 
 SupportedNode = (
@@ -17,6 +18,8 @@ SupportedNode = (
     | ast.Subscript
     | ast.Constant
     | ast.Compare
+    | list[ast.Name | ast.Dict]
+    | int
 )
 
 
@@ -64,7 +67,9 @@ class WrappedNode[T: SupportedNode | None]:
         return f"WrappedNode({repr(self.val)})"
 
     @overload
-    def get(self, attr: Literal["args"]) -> "WrappedNode[list[ast.Name]]": ...
+    def get(
+        self, attr: Literal["args"]
+    ) -> "WrappedNode[list[ast.Name | ast.Dict]]": ...
 
     @overload
     def get(self, attr: Literal["keywords"]) -> "WrappedNode[list[ast.keyword]]": ...
@@ -95,6 +100,11 @@ class WrappedNode[T: SupportedNode | None]:
 
     @overload
     def get(
+        self: "WrappedNode[ast.Dict | None]", attr: Literal["keys"]
+    ) -> "WrappedNode[list[ast.Constant]]": ...
+
+    @overload
+    def get(
         self: "WrappedNode[ast.Subscript]", attr: Literal["value"]
     ) -> "WrappedNode[ast.Name | ast.Call]": ...
 
@@ -103,10 +113,13 @@ class WrappedNode[T: SupportedNode | None]:
         self: "WrappedNode[ast.Subscript]", attr: Literal["slice"]
     ) -> "WrappedNode[ast.Constant | ast.Compare]": ...
 
+    @overload
+    def get(self: "WrappedNode", attr: Literal["lineno"]) -> "WrappedNode[int]": ...
+
     def get(
         self,
         attr: Literal[
-            "value", "args", "keywords", "id", "func", "attr", "keys", "slice"
+            "value", "args", "keywords", "id", "func", "attr", "keys", "slice", "lineno"
         ],
     ) -> "WrappedNode":
         """
@@ -124,6 +137,11 @@ class WrappedNode[T: SupportedNode | None]:
             if the attribute doesn't exist
         """
         return WrappedNode(getattr(self.val, attr, None))
+
+    def __getitem__[V: ast.Dict | ast.Name](
+        self: "WrappedNode[list[V]]", index: int
+    ) -> "WrappedNode[V]":
+        return WrappedNode(getitem(self.val or [None] * index, index))
 
     @property
     def targets(self):
