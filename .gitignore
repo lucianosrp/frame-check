@@ -151,3 +151,5 @@ type static type analyzer
 
 # Cython debug symbols
 cython_debug/
+
+*.wasm

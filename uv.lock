@@ -174,11 +174,15 @@ name = "frame-check-lsp"
 version = "0.1.0"
 source = { editable = "frame-check-lsp" }
 dependencies = [
+    { name = "frame-check-core" },
     { name = "pygls" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pygls", specifier = "==2.0.0a6" }]
+requires-dist = [
+    { name = "frame-check-core", editable = "frame-check-core" },
+    { name = "pygls", specifier = "==2.0.0a6" },
+]
 
 [[package]]
 name = "ipykernel"

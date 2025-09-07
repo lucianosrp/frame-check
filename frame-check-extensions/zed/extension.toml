@@ -1,0 +1,8 @@
+id = "frame"
+name = "Frame Check"
+version = "0.0.1"
+schema_version = 1
+
+[language_servers.frame]
+name = "Frame Check"
+languages = ["Python"]
