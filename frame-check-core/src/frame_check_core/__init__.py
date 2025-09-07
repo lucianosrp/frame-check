@@ -21,17 +21,6 @@ class FrameInstance:
 
 
 @dataclass
-class DictAssignment:
-    _node: ast.Assign
-    lineno: int
-    id: str
-    keys: list[str]
-
-    @classmethod
-    def from_node(cls, node: ast.Assign) -> "DictAssignment | None": ...  # TODO
-
-
-@dataclass
 class ColumnAccess:
     _node: ast.Subscript
     lineno: int
@@ -69,7 +58,6 @@ class FrameHistory:
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases = {}
-        self.dict_data: dict[str, DictAssignment] = {}
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
         self.definitions: dict[str, ast.AST] = {}
