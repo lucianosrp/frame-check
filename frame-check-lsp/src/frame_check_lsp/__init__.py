@@ -1,50 +1,53 @@
-import re
+import ast
+import contextlib
 
+from frame_check_core import FrameChecker
 from lsprotocol import types
 from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
 
-ADDITION = re.compile(r"^\s*(\d+)\s*\+\s*(\d+)\s*=(?=\s*$)")
-server = LanguageServer("code-action-server", "v0.1")
+server = LanguageServer("frame-check-lsp", "v0.1")
 
 
-@server.feature(
-    types.TEXT_DOCUMENT_CODE_ACTION,
-    types.CodeActionOptions(code_action_kinds=[types.CodeActionKind.QuickFix]),
-)
-def code_actions(params: types.CodeActionParams):
-    items = []
-    document_uri = params.text_document.uri
-    document = server.workspace.get_text_document(document_uri)
+@server.feature(types.TEXT_DOCUMENT_DID_CHANGE)
+@server.feature(types.TEXT_DOCUMENT_DID_OPEN)
+async def frame_diagnostics(
+    ls: LanguageServer, params: types.DidOpenTextDocumentParams
+):
+    text_doc = ls.workspace.get_text_document(params.text_document.uri)
+    contents = text_doc.source
 
-    start_line = params.range.start.line
-    end_line = params.range.end.line
+    with contextlib.suppress(SyntaxError):
+        tree = ast.parse(contents)
+        fc = FrameChecker()
+        fc.visit(tree)
+        diagnostics = []
+        for access in fc.column_accesses.values():
+            if access.id not in access.frame.columns:
+                error_message = f"TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
+                details = (
+                    f"With data defined at {access.frame.data_arg.get('lineno').val}"
+                )
 
-    lines = document.lines[start_line : end_line + 1]
-    for idx, line in enumerate(lines):
-        match = ADDITION.match(line)
-        if match is not None:
-            range_ = types.Range(
-                start=types.Position(line=start_line + idx, character=0),
-                end=types.Position(line=start_line + idx, character=len(line) - 1),
-            )
+                diagnostic = types.Diagnostic(
+                    range=types.Range(
+                        start=types.Position(access.lineno - 1, 0),
+                        end=types.Position(
+                            access.lineno - 1, 80
+                        ),  # Assuming 80 chars as line length
+                    ),
+                    message=f"{error_message}\n{details}",
+                    source="Frame Checker",
+                    severity=types.DiagnosticSeverity.Error,
+                )
+                diagnostics.append(diagnostic)
 
-            left = int(match.group(1))
-            right = int(match.group(2))
-            answer = left + right
-
-            text_edit = types.TextEdit(
-                range=range_, new_text=f"{line.strip()} {answer}!"
-            )
-
-            action = types.CodeAction(
-                title=f"Evaluate: '{match.group(0)}'",
-                kind=types.CodeActionKind.QuickFix,
-                edit=types.WorkspaceEdit(changes={document_uri: [text_edit]}),
-            )
-            items.append(action)
-
-    return items
+                # Send diagnostics
+                ls.text_document_publish_diagnostics(
+                    types.PublishDiagnosticsParams(
+                        uri=text_doc.uri, diagnostics=diagnostics
+                    )
+                )
 
 
 def main():

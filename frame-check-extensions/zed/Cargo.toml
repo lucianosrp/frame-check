@@ -1,0 +1,12 @@
+[package]
+name = "frame-check"
+version = "0.1.1"
+edition = "2024"
+
+
+[lib]
+path = "src/frame_check.rs"
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "0.5.0"
