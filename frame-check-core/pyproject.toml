@@ -17,3 +17,11 @@ frame-check-core = "frame_check_core:main"
 [build-system]
 requires = ["uv_build>=0.8.12,<0.9.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+[[tool.uv.index]]
+url = "https://wingx-018953446474.d.codeartifact.eu-central-1.amazonaws.com/pypi/internal-tools/simple/"

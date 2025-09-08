@@ -57,7 +57,7 @@ class FrameHistory:
 
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
-        self.import_aliases = {}
+        self.import_aliases: dict[str, str] = {}
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
         self.definitions: dict[str, ast.AST] = {}
@@ -126,7 +126,6 @@ class FrameChecker(ast.NodeVisitor):
                 self.definitions[target.id] = node.value
 
         self.maybe_assign_df(node)
-
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import):
