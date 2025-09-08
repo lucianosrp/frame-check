@@ -8,6 +8,7 @@ data = {
 }
 # Create a sample DataFrame
 df = pd.DataFrame(data)
+
 # Non existent column
 df["NonExistentColumn"]  # <-- triggers an error
 
