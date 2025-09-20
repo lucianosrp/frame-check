@@ -11,6 +11,7 @@ server = LanguageServer("frame-check-lsp", "v0.1")
 
 @server.feature(types.TEXT_DOCUMENT_DID_CHANGE)
 @server.feature(types.TEXT_DOCUMENT_DID_OPEN)
+@server.feature(types.TEXT_DOCUMENT_DID_SAVE)
 async def frame_diagnostics(
     ls: LanguageServer, params: types.DidOpenTextDocumentParams
 ):
@@ -40,14 +41,27 @@ async def frame_diagnostics(
                     source="Frame Checker",
                     severity=types.DiagnosticSeverity.Error,
                 )
+
                 diagnostics.append(diagnostic)
 
-                # Send diagnostics
-                ls.text_document_publish_diagnostics(
-                    types.PublishDiagnosticsParams(
-                        uri=text_doc.uri, diagnostics=diagnostics
+                if data_defined_ln := access.frame.data_arg.get("lineno").val:
+                    diagnostics.append(
+                        types.Diagnostic(
+                            range=types.Range(
+                                start=types.Position(data_defined_ln - 1, 0),
+                                end=types.Position(
+                                    data_defined_ln - 1, 80
+                                ),  # Assuming 80 chars as line length
+                            ),
+                            message="Data defined here",
+                            source="Frame Checker",
+                            severity=types.DiagnosticSeverity.Warning,
+                        )
                     )
-                )
+        # Send diagnostics (moved outside the loop to always run, even with empty diagnostics)
+        ls.text_document_publish_diagnostics(
+            types.PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=diagnostics)
+        )
 
 
 def main():
