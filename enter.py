@@ -14,7 +14,7 @@ GREEN = "\033[92m"
 RED = "\033[91m"
 YELLOW = "\033[93m"
 RESET = "\033[0m"
-MIN_UV_MINOR_VERSION = 10
+MIN_UV_MINOR_VERSION = 8
 
 print(f"{BOLD}Welcome! Checking sprint requirements...{RESET}")
 
