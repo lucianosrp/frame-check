@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import NamedTuple, cast
+from typing import NamedTuple, Self, cast
 
 from frame_check_core._models import WrappedNode
 
@@ -61,6 +61,13 @@ class FrameChecker(ast.NodeVisitor):
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
         self.definitions: dict[str, ast.AST] = {}
+
+    @classmethod
+    def check(cls, code: str) -> Self:
+        checker = cls()
+        tree = ast.parse(code)
+        checker.visit(tree)
+        return checker
 
     @staticmethod
     def _is_dict(node: ast.Assign) -> bool:

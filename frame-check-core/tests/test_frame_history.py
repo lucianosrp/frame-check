@@ -11,9 +11,7 @@ import pandas as pd
 df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 """
 
-    tree = ast.parse(code)
-    fc = FrameChecker()
-    fc.visit(tree)
+    fc = FrameChecker.check(code)
 
     assert fc.frames.frame_keys() == ["df"]
     assert list(fc.frames.frames.keys()) == [FrameHistoryKey(4, "df")]
@@ -28,9 +26,7 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 df = df[["a"]]
 """
 
-    tree = ast.parse(code)
-    fc = FrameChecker()
-    fc.visit(tree)
+    fc = FrameChecker.check(code)
 
     assert fc.frames.frame_keys() == ["df"]
     assert list(fc.frames.frames.keys()) == [
