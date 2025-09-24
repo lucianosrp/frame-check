@@ -55,7 +55,7 @@ async def frame_diagnostics(
                             ),
                             message="Data defined here",
                             source="Frame Checker",
-                            severity=types.DiagnosticSeverity.Warning,
+                            severity=types.DiagnosticSeverity.Hint,
                         )
                     )
         # Send diagnostics (moved outside the loop to always run, even with empty diagnostics)
