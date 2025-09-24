@@ -164,29 +164,13 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def parse_file(filename: str) -> ast.AST:
-    """
-    Parse a Python source file into an AST.
-
-    Args:
-        filename: Path to the Python file to parse
-
-    Returns:
-        The AST representation of the file
-    """
-    with open(filename, "r") as file:
-        source = file.read()
-
-    return ast.parse(source, filename=filename)
 
 
 def main():
     import sys
 
     path = sys.argv[1]
-    tree = parse_file(path)
-
-    fc = FrameChecker.check(tree)
+    fc = FrameChecker.check(path)
     for access in fc.column_accesses.values():
         if access.id not in access.frame.columns:
             print()
