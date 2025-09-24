@@ -15,7 +15,7 @@ A Language Server Protocol (LSP) implementation for frame-check.
 To install for development:
 
 ```bash
-uv pip install . -e
+uv tool install . -e
 ```
 
 This will install the package in editable mode, allowing you to make changes to the code and see them reflected immediately.
