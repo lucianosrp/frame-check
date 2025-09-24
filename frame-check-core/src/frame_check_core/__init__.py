@@ -1,5 +1,6 @@
 import ast
 from dataclasses import dataclass, field
+from os import PathLike
 from typing import NamedTuple, Self, cast
 
 from frame_check_core._models import WrappedNode
@@ -63,9 +64,16 @@ class FrameChecker(ast.NodeVisitor):
         self.definitions: dict[str, ast.AST] = {}
 
     @classmethod
-    def check(cls, code: str) -> Self:
+    def check(cls, code: str | ast.AST  | PathLike[str]) -> Self:
         checker = cls()
-        tree = ast.parse(code)
+        match code:
+            case str():
+                tree = ast.parse(code)
+            case PathLike():
+                with open(code, 'r') as f:
+                    tree = ast.parse(f.read())
+            case _:
+                tree = code
         checker.visit(tree)
         return checker
 
@@ -178,11 +186,7 @@ def main():
     path = sys.argv[1]
     tree = parse_file(path)
 
-    fc = FrameChecker()
-    fc.visit(tree)
-    # print(fc.definitions.keys())
-    # fc.frames.get_before(45, "df")
-    # fc.column_accesses
+    fc = FrameChecker.check(tree)
     for access in fc.column_accesses.values():
         if access.id not in access.frame.columns:
             print()
