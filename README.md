@@ -26,7 +26,8 @@ When accessing DataFrame columns, you typically have to choose between:
 
 1. **Manual verification** - Tediously trace through your code to verify every column reference
 2. **Runtime checks** - Add defensive programming with `if 'column' in df.columns:` everywhere
-3. **Cross your fingers** - Hope the columns exist and deal with crashes later
+3. **Source check** - Verify columns existence in your file or database schema
+4. **Cross your fingers** - Hope the columns exist and deal with crashes later
 
 ```python
 # Defensive programming gets verbose quickly
@@ -88,6 +89,7 @@ example.py:12:10 - error: Column 'customer_id' does not exist
 
 - [pdchecker](https://github.com/ncu-psl/pdchecker)
 - [Mypy issue](https://github.com/python/mypy/issues/17935)
+- [StaticFrame](https://github.com/static-frame/static-frame)
 
 
 
