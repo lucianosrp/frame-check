@@ -3,7 +3,7 @@
 ---
 
 # frame-check
-**A static type checker for pandas DataFrames**
+**A static checker for pandas DataFrames**
 
 ## Why frame-check?
 
