@@ -10,13 +10,35 @@ Welcome to the frame-check sprint! This project aims to bring static type checki
 - Enhance editor integration
 - Add comprehensive test coverage
 
+## Enter the sprint !
+To enter the sprint you must be able to run the following script:
+
+<details>
+<summary>Using curl (quick and recommended)</summary>
+
+```
+curl -LsSf https://raw.githubusercontent.com/lucianosrp/frame-check/refs/heads/sprint/enter.py | python
+```
+
+</details>
+
+<details>
+<summary>Using git</summary>
+
+```
+git clone https://github.com/lucianosrp/frame-check.git 2>/dev/null || true && cd frame-check && python enter.py
+```
+
+</details>
+
+
 ## 🚀 How to Contribute
 
 ### Getting Started
 
 1. **Fork and Clone**
    ```bash
-   git clone https://github.com/yourusername/frame-check.git
+   git clone https://github.com/lucianosrp/frame-check.git
    cd frame-check
    ```
 
