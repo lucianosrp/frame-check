@@ -1,7 +1,7 @@
 [project]
 name = "frame-check-core"
 version = "0.1.0"
-description = "Add your description here"
+description = "A static checker for DataFrames"
 readme = "README.md"
 authors = [
     { name = "Luciano Scarpulla", email = "luciano@wingx-advance.com" }
