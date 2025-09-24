@@ -1,5 +1,3 @@
-import ast
-
 import pytest
 from frame_check_core import FrameChecker, FrameHistoryKey
 

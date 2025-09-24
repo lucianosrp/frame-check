@@ -64,13 +64,13 @@ class FrameChecker(ast.NodeVisitor):
         self.definitions: dict[str, ast.AST] = {}
 
     @classmethod
-    def check(cls, code: str | ast.AST  | PathLike[str]) -> Self:
+    def check(cls, code: str | ast.AST | PathLike[str]) -> Self:
         checker = cls()
         match code:
             case str():
                 tree = ast.parse(code)
             case PathLike():
-                with open(code, 'r') as f:
+                with open(code, "r") as f:
                     tree = ast.parse(f.read())
             case _:
                 tree = code
@@ -162,8 +162,6 @@ class FrameChecker(ast.NodeVisitor):
                     )
 
         self.generic_visit(node)
-
-
 
 
 def main():

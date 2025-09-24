@@ -1,5 +1,4 @@
 def test_import_alias():
-
     from frame_check_core import FrameChecker
 
     code = """

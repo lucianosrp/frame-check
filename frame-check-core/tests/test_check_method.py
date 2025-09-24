@@ -1,5 +1,5 @@
-import pytest
 import ast
+
 from frame_check_core import FrameChecker
 
 
@@ -13,8 +13,8 @@ value = df['C']
 """
     checker = FrameChecker.check(code)
     assert len(checker.column_accesses) == 1
-    assert 'C' in checker.column_accesses
-    assert checker.column_accesses['C'].id == 'C'
+    assert "C" in checker.column_accesses
+    assert checker.column_accesses["C"].id == "C"
 
 
 def test_check_with_ast_input():
@@ -29,7 +29,7 @@ value = df['A']
     checker = FrameChecker.check(tree)
     assert len(checker.frames.frames) == 1
     assert len(checker.column_accesses) == 1
-    assert 'A' in checker.column_accesses
+    assert "A" in checker.column_accesses
 
 
 def test_check_with_file_input(tmp_path):
@@ -45,7 +45,7 @@ result = df['Z']
 
     checker = FrameChecker.check(test_file)
     assert len(checker.column_accesses) == 1
-    assert 'Z' in checker.column_accesses
+    assert "Z" in checker.column_accesses
 
 
 def test_check_valid_column_access():
@@ -58,11 +58,11 @@ names = df['name']
 """
     checker = FrameChecker.check(code)
     assert len(checker.column_accesses) == 1
-    assert 'name' in checker.column_accesses
-    access = checker.column_accesses['name']
-    assert access.id == 'name'
-    assert access.frame.id == 'df'
-    assert 'name' in access.frame.columns
+    assert "name" in checker.column_accesses
+    access = checker.column_accesses["name"]
+    assert access.id == "name"
+    assert access.frame.id == "df"
+    assert "name" in access.frame.columns
 
 
 def test_check_multiple_dataframes():
@@ -79,9 +79,9 @@ val3 = df1['X']  # Invalid column
 """
     checker = FrameChecker.check(code)
     assert len(checker.column_accesses) == 3
-    assert 'A' in checker.column_accesses
-    assert 'C' in checker.column_accesses
-    assert 'X' in checker.column_accesses
+    assert "A" in checker.column_accesses
+    assert "C" in checker.column_accesses
+    assert "X" in checker.column_accesses
 
 
 def test_check_pandas_alias():
@@ -95,7 +95,7 @@ result = df['col1']
     checker = FrameChecker.check(code)
     assert len(checker.frames.frames) == 1
     assert len(checker.column_accesses) == 1
-    assert 'col1' in checker.column_accesses
+    assert "col1" in checker.column_accesses
 
 
 def test_check_empty_code():
