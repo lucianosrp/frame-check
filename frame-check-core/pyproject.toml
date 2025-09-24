@@ -22,6 +22,3 @@ build-backend = "uv_build"
 dev = [
     "pytest>=8.4.2",
 ]
-
-[[tool.uv.index]]
-url = "https://wingx-018953446474.d.codeartifact.eu-central-1.amazonaws.com/pypi/internal-tools/simple/"
