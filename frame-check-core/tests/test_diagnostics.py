@@ -1,4 +1,4 @@
-from frame_check_core import FrameChecker, Diagnostic
+from frame_check_core import Diagnostic, FrameChecker
 
 
 def test_diagnostics_data():
@@ -48,7 +48,6 @@ df["NonExistentColumn"]
     """
 
     fc = FrameChecker.check(code)
-    print(fc.diagnostics)
     assert fc.diagnostics == [
         Diagnostic(
             message="Column 'NonExistentColumn' does not exist",
