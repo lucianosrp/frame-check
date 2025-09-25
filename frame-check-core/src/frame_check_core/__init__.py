@@ -35,6 +35,15 @@ class FrameHistoryKey(NamedTuple):
 
 
 @dataclass
+class Diagnostic:
+    message: str
+    severity: str
+    location: tuple[int, int]
+    hint: str | None = None
+    definition_location: tuple[int, int] | None = None
+
+
+@dataclass
 class FrameHistory:
     frames: dict[FrameHistoryKey, FrameInstance] = field(default_factory=dict)
 
@@ -62,20 +71,56 @@ class FrameChecker(ast.NodeVisitor):
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
         self.definitions: dict[str, ast.AST] = {}
+        self.diagnostics: list[Diagnostic] = []
 
     @classmethod
     def check(cls, code: str | ast.AST | PathLike[str]) -> Self:
         checker = cls()
         match code:
-            case str():
-                tree = ast.parse(code)
             case PathLike():
                 with open(code, "r") as f:
                     tree = ast.parse(f.read())
-            case _:
+            case str():
+                if code.endswith(".py"):
+                    with open(code, "r") as f:
+                        tree = ast.parse(f.read())
+                else:
+                    tree = ast.parse(code)
+            case ast.AST():
                 tree = code
+
+            case _:
+                raise TypeError(f"Unsupported type: {type(code)}")
+
         checker.visit(tree)
+        # Generate diagnostics
+        checker._generate_diagnostics()
         return checker
+
+    def _generate_diagnostics(self):
+        """Generate diagnostics from collected column accesses."""
+        for access in self.column_accesses.values():
+            if access.id not in access.frame.columns:
+                columns_list = "\n".join(f"  • {col}" for col in access.frame.columns)
+                message = f"Column '{access.id}' does not exist"
+                frame_hist = self.frames.get_before(access.lineno, access.frame.id)
+                hint = None
+                definition_location = None
+                if frame_hist is not None:
+                    hint = f"DataFrame '{access.frame.id}' was defined at line {frame_hist.lineno} with columns:\n{columns_list}"
+                    definition_location = (
+                        (frame_hist.data_arg.get("lineno").val or frame_hist.lineno),
+                        0,
+                    )
+
+                diagnostic = Diagnostic(
+                    message=message,
+                    severity="error",
+                    location=(access.lineno, 0),
+                    hint=hint,
+                    definition_location=definition_location,
+                )
+                self.diagnostics.append(diagnostic)
 
     @staticmethod
     def _is_dict(node: ast.Assign) -> bool:
@@ -169,12 +214,8 @@ def main():
 
     path = sys.argv[1]
     fc = FrameChecker.check(path)
-    for access in fc.column_accesses.values():
-        if access.id not in access.frame.columns:
-            print()
-            print("-" * 78)
-            print(path + f":{access.lineno}")
-            print(
-                f"line[{access.lineno}]: TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
-            )
-            print(f"\t\tWith data defined at {access.frame.data_arg.get('lineno').val}")
+    for diagnostic in fc.diagnostics:
+        print()
+        print("-" * 78)
+        print(path + f":{diagnostic.location[0]}")
+        print(f"line[{diagnostic.location[0]}]: {diagnostic.message}")
