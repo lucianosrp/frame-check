@@ -1,149 +1,67 @@
 import ast
-from operator import getitem
-from typing import Any, Literal, overload
+from dataclasses import dataclass, field
+from typing import NamedTuple
 
-SupportedNode = (
-    ast.Call
-    | list[ast.Name]
-    | list[ast.keyword]
-    | ast.Assign
-    | str
-    | ast.arg
-    | ast.Name
-    | ast.keyword
-    | ast.Dict
-    | list[ast.Constant]
-    | ast.FunctionDef
-    | ast.Attribute
-    | ast.Subscript
-    | ast.Constant
-    | ast.Compare
-    | list[ast.Name | ast.Dict]
-    | int
-)
+from frame_check_core._ast import WrappedNode
 
 
-class WrappedNode[T: SupportedNode | None]:
-    """
-    A generic wrapper class for AST nodes that provides safe attribute access.
-
-    This class wraps AST nodes and provides type-safe access to their attributes
-    through the get() method. If an attribute doesn't exist, it returns an empty
-    WrappedNode instead of raising an AttributeError. This allows for method chaining.
-
-
-    Type parameter:
-        T: The type of the wrapped value
-
-
-    Example
-    ---
-
-    >>> node = WrappedNode(ast.Call(ast.Name("print"), [ast.Constant(42)]))
-    >>> node.get("func").get("id")
-    WrappedNode("print")
-
-    >>> node = WrappedNode(ast.Call(func=ast.Name(id="print", ctx=ast.Load()), args=[], keywords=[]))
-    >>> node.get("nonexistent_attr").get("another_attr")
-    WrappedNode(None)
-    """
-
-    def __init__(self, val: Any | None = None):
-        """
-        Initialize a WrappedNode with the given value.
-
-        Args:
-            value: The value to wrap. Defaults to None.
-        """
-        self.val: T | None = val
-
-    def __repr__(self) -> str:
-        """
-        Return a string representation of the wrapped node.
-
-        Returns:
-            A string in the format WrappedNode(value)
-        """
-        return f"WrappedNode({repr(self.val)})"
-
-    @overload
-    def get(
-        self, attr: Literal["args"]
-    ) -> "WrappedNode[list[ast.Name | ast.Dict]]": ...
-
-    @overload
-    def get(self, attr: Literal["keywords"]) -> "WrappedNode[list[ast.keyword]]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.Call]", attr: Literal["value"]
-    ) -> "WrappedNode[ast.Name]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.Assign]", attr: Literal["value"]
-    ) -> "WrappedNode[SupportedNode]": ...
-
-    @overload
-    def get(self, attr: Literal["func"]) -> "WrappedNode[ast.Call]": ...
-
-    @overload
-    def get(self, attr: Literal["id"]) -> "WrappedNode[str]": ...
-
-    @overload
-    def get(self, attr: Literal["attr"]) -> "WrappedNode[str]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.arg]", attr: Literal["keys"]
-    ) -> "WrappedNode[list[ast.Constant]]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.Dict | None]", attr: Literal["keys"]
-    ) -> "WrappedNode[list[ast.Constant]]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.Subscript]", attr: Literal["value"]
-    ) -> "WrappedNode[ast.Name | ast.Call]": ...
-
-    @overload
-    def get(
-        self: "WrappedNode[ast.Subscript]", attr: Literal["slice"]
-    ) -> "WrappedNode[ast.Constant | ast.Compare]": ...
-
-    @overload
-    def get(self: "WrappedNode", attr: Literal["lineno"]) -> "WrappedNode[int]": ...
-
-    def get(
-        self,
-        attr: Literal[
-            "value", "args", "keywords", "id", "func", "attr", "keys", "slice", "lineno"
-        ],
-    ) -> "WrappedNode":
-        """
-        Safely get an attribute from the wrapped value.
-
-        If the attribute doesn't exist or the wrapped value is None,
-        returns an empty WrappedNode instead of raising an AttributeError.
-
-        Args:
-            attr: The attribute name to access, must be one of "value", "args",
-                  "keywords", or "id"
-
-        Returns:
-            A new WrappedNode containing the attribute value, or an empty WrappedNode
-            if the attribute doesn't exist
-        """
-        return WrappedNode(getattr(self.val, attr, None))
-
-    def __getitem__[V: ast.Dict | ast.Name](
-        self: "WrappedNode[list[V]]", index: int
-    ) -> "WrappedNode[V]":
-        return WrappedNode(getitem(self.val or [None] * index, index))
+@dataclass
+class FrameInstance:
+    _node: ast.Assign
+    lineno: int
+    id: str
+    data_arg: WrappedNode[ast.Dict | None]
+    keywords: list[WrappedNode[ast.keyword]]
 
     @property
-    def targets(self):
-        tar = getattr(self.val, "targets", None)
-        return [WrappedNode(v) for v in tar] if tar else []
+    def columns(self) -> list[str]:
+        arg = self.data_arg
+        keys = arg.get("keys")
+        return [key.value for key in keys.val] if keys.val is not None else []
+
+
+@dataclass
+class ColumnAccess:
+    _node: ast.Subscript
+    lineno: int
+    id: str
+    frame: FrameInstance
+
+
+class FrameHistoryKey(NamedTuple):
+    lineno: int
+    id: str
+
+
+@dataclass
+class Diagnostic:
+    message: str
+    severity: str
+    location: tuple[int, int]
+    hint: str | None = None
+    definition_location: tuple[int, int] | None = None
+
+
+@dataclass
+class FrameHistory:
+    frames: dict[FrameHistoryKey, FrameInstance] = field(default_factory=dict)
+
+    def add(self, frame: FrameInstance):
+        key = FrameHistoryKey(frame.lineno, frame.id)
+        self.frames[key] = frame
+
+    def get(self, id: str) -> list[FrameInstance]:
+        return [frame for frame in self.frames.values() if frame.id == id]
+
+    def get_at(self, lineno: int, id: str) -> FrameInstance | None:
+        return self.frames.get(FrameHistoryKey(lineno, id))
+
+    def get_before(self, lineno: int, id: str) -> FrameInstance | None:
+        keys = sorted(self.frames.keys(), key=lambda k: k.lineno, reverse=True)
+        for key in keys:
+            if key.lineno < lineno and key.id == id:
+                return self.frames[key]
+        return None
+
+    def frame_keys(self) -> list[str]:
+        return [frame.id for frame in self.frames.values()]
