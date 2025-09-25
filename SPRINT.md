@@ -54,7 +54,7 @@ git clone https://github.com/lucianosrp/frame-check.git 2>/dev/null || true && c
 3. **Test the Current Implementation**
    ```bash
    # Test the core functionality
-   uv run frame-check-core example.py
+   uv run frame-check example.py
 
    # Test the LSP server
    uv run frame-check-lsp
@@ -125,13 +125,13 @@ git clone https://github.com/lucianosrp/frame-check.git 2>/dev/null || true && c
 3. **Test Your Changes**
    ```bash
    # Test core functionality
-   uv run frame-check-core example.py
+   uv run frame-check example.py
 
    # Test with your own examples
    echo "import pandas as pd
    df = pd.DataFrame([{'name': 'Alice', 'age': 25}])
    print(df['nonexistent'])" > test.py
-   uv run frame-check-core test.py
+   uv run frame-check test.py
    ```
 
 4. **Submit a Pull Request**
@@ -164,7 +164,7 @@ empty_df = pd.DataFrame()
 # ... add more test cases
 ```
 
-Run with: `uv run frame-check-core test_new_feature.py`
+Run with: `uv run frame-check test_new_feature.py`
 
 ## 🐛 Found a Bug?
 

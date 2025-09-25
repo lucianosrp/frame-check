@@ -92,29 +92,31 @@ example.py:12:10 - error: Column 'customer_id' does not exist
 - [StaticFrame](https://github.com/static-frame/static-frame)
 
 
-
-## Project structure
-This project is structured as a workspace with multiple components:
-
-```
-frame-check/
-├── frame-check-core/           # Core AST analysis and DataFrame tracking
-│   └── src/frame_check_core/
-│       ├── __init__.py         # Main FrameChecker class and data models
-│       └── _models.py          # AST node wrapper utilities
-├── frame-check-lsp/            # Language Server Protocol implementation
-│   └── src/frame_check_lsp/
-│       └── __init__.py         # LSP server with real-time diagnostics
-├── frame-check-extensions/     # Editor integrations
-│   └── zed/                    # Zed editor extension
-│       ├── extension.toml      # Extension configuration
-│       └── src/frame_check.rs  # Rust extension implementation
-├── example.py                  # Sample Python file for testing
-└── pyproject.toml              # Workspace configuration
-```
-
 ### Components
 
 - **frame-check-core**: The heart of the type checker that parses Python AST and tracks DataFrame schemas
 - **frame-check-lsp**: Language Server Protocol implementation for editor integration
 - **frame-check-extensions**: Editor-specific extensions (currently supports Zed)
+
+
+## Contribute
+
+We welcome contributions from the community! Here's how you can help:
+
+- **Report bugs**: If you find a bug or issue, please open an issue on our [GitHub repository](https://github.com/lucianosrp/frame-check).
+- **Submit pull requests**: If you have a fix or improvement, feel free to submit a pull request.
+- **Discuss features**: Join our discussion forum to share ideas and feedback.
+- **Spread the word**: Help us spread the word about **frame-check** by sharing it with your network.
+
+### Clone the repository
+
+```
+git clone https://github.com/lucianosrp/frame-check.git
+```
+
+### Create an environment
+
+```
+cd frame-check && uv sync
+```
+Each component should then have a README.md file with instructions on how to run it.
