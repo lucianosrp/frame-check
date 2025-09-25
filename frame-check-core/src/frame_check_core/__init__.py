@@ -51,6 +51,9 @@ class FrameHistory:
         key = FrameHistoryKey(frame.lineno, frame.id)
         self.frames[key] = frame
 
+    def get(self, id: str) -> list[FrameInstance]:
+        return [frame for frame in self.frames.values() if frame.id == id]
+
     def get_at(self, lineno: int, id: str) -> FrameInstance | None:
         return self.frames.get(FrameHistoryKey(lineno, id))
 
