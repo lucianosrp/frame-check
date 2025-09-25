@@ -24,3 +24,6 @@ dev = [
     "pandas>=2.3.2",
     "pytest>=8.4.2",
 ]
+
+[tool.pyright]
+typeCheckingMode = "basic"
