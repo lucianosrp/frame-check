@@ -149,6 +149,7 @@ dev = [
     { name = "ipykernel" },
     { name = "ipython" },
     { name = "pandas" },
+    { name = "pytest" },
 ]
 
 [package.metadata]
@@ -162,6 +163,7 @@ dev = [
     { name = "ipykernel", specifier = ">=6.30.1" },
     { name = "ipython", specifier = ">=9.5.0" },
     { name = "pandas", specifier = ">=2.3.2" },
+    { name = "pytest", specifier = ">=8.4.2" },
 ]
 
 [[package]]
@@ -202,7 +204,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/f2/97/ebf4da567aa6827c9
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/e1/e6716421ea10d38022b952c159d5161ca1193197fb744506875fbb87ea7b/iniconfig-2.1.0-py3-none-any.whl", hash = "sha256:9deba5723312380e77435581c6bf4935c94cbfab9b1ed33ef8d238ea168eb760", size = 6050, upload-time = "2025-03-19T20:10:01.071Z" },
 ]
-
 
 [[package]]
 name = "ipykernel"

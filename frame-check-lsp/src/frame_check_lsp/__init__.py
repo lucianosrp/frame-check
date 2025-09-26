@@ -17,50 +17,51 @@ async def frame_diagnostics(
 ):
     text_doc = ls.workspace.get_text_document(params.text_document.uri)
     contents = text_doc.source
+    ls_diagnostics = []
 
     with contextlib.suppress(SyntaxError):
         tree = ast.parse(contents)
-        fc = FrameChecker()
-        fc.visit(tree)
-        diagnostics = []
-        for access in fc.column_accesses.values():
-            if access.id not in access.frame.columns:
-                error_message = f"TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
-                details = (
-                    f"With data defined at {access.frame.data_arg.get('lineno').val}"
-                )
-
-                diagnostic = types.Diagnostic(
-                    range=types.Range(
-                        start=types.Position(access.lineno - 1, 0),
-                        end=types.Position(
-                            access.lineno - 1, 80
-                        ),  # Assuming 80 chars as line length
+        fc = FrameChecker.check(tree)
+        for diagnostic in fc.diagnostics:
+            ls_diagnostic = types.Diagnostic(
+                range=types.Range(
+                    start=types.Position(
+                        diagnostic.location[0] - 1, diagnostic.location[1]
                     ),
-                    message=f"{error_message}\n{details}",
-                    source="Frame Checker",
-                    severity=types.DiagnosticSeverity.Error,
-                )
+                    end=types.Position(
+                        diagnostic.location[0] - 1, 80
+                    ),  # Assuming 80 chars as line length
+                ),
+                message=diagnostic.message,
+                source="Frame Checker",
+                severity=types.DiagnosticSeverity.Error,
+            )
 
-                diagnostics.append(diagnostic)
+            ls_diagnostics.append(ls_diagnostic)
 
-                if data_defined_ln := access.frame.data_arg.get("lineno").val:
-                    diagnostics.append(
-                        types.Diagnostic(
-                            range=types.Range(
-                                start=types.Position(data_defined_ln - 1, 0),
-                                end=types.Position(
-                                    data_defined_ln - 1, 80
-                                ),  # Assuming 80 chars as line length
+            if (
+                diagnostic.hint is not None
+                and diagnostic.definition_location is not None
+            ):
+                ls_diagnostics.append(
+                    types.Diagnostic(
+                        range=types.Range(
+                            start=types.Position(
+                                diagnostic.definition_location[0] - 1,
+                                diagnostic.definition_location[1],
                             ),
-                            message="Data defined here",
-                            source="Frame Checker",
-                            severity=types.DiagnosticSeverity.Warning,
-                        )
+                            end=types.Position(
+                                diagnostic.definition_location[0] - 1, 80
+                            ),  # Assuming 80 chars as line length
+                        ),
+                        message=diagnostic.hint,
+                        source="Frame Checker",
+                        severity=types.DiagnosticSeverity.Hint,
                     )
+                )
         # Send diagnostics (moved outside the loop to always run, even with empty diagnostics)
         ls.text_document_publish_diagnostics(
-            types.PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=diagnostics)
+            types.PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=ls_diagnostics)
         )
 
 

@@ -1,7 +1,7 @@
 [project]
 name = "frame-check-core"
 version = "0.1.0"
-description = "Add your description here"
+description = "A static checker for DataFrames"
 readme = "README.md"
 authors = [
     { name = "Luciano Scarpulla", email = "luciano@wingx-advance.com" }
@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.scripts]
-frame-check-core = "frame_check_core:main"
+frame-check = "frame_check_core:main"
 
 
 [build-system]
@@ -22,3 +22,6 @@ build-backend = "uv_build"
 dev = [
     "pytest>=8.4.2",
 ]
+
+[tool.pyright]
+typeCheckingMode = "basic"

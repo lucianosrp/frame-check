@@ -1,58 +1,15 @@
 import ast
-from dataclasses import dataclass, field
-from typing import NamedTuple, cast
+from os import PathLike
+from typing import Self, cast
 
-from frame_check_core._models import WrappedNode
-
-
-@dataclass
-class FrameInstance:
-    _node: ast.Assign
-    lineno: int
-    id: str
-    data_arg: WrappedNode[ast.Dict | None]
-    keywords: list[WrappedNode[ast.keyword]]
-
-    @property
-    def columns(self) -> list[str]:
-        arg = self.data_arg
-        keys = arg.get("keys")
-        return [key.value for key in keys.val] if keys.val is not None else []
-
-
-@dataclass
-class ColumnAccess:
-    _node: ast.Subscript
-    lineno: int
-    id: str
-    frame: FrameInstance
-
-
-class FrameHistoryKey(NamedTuple):
-    lineno: int
-    id: str
-
-
-@dataclass
-class FrameHistory:
-    frames: dict[FrameHistoryKey, FrameInstance] = field(default_factory=dict)
-
-    def add(self, frame: FrameInstance):
-        key = FrameHistoryKey(frame.lineno, frame.id)
-        self.frames[key] = frame
-
-    def get_at(self, lineno: int, id: str) -> FrameInstance | None:
-        return self.frames.get(FrameHistoryKey(lineno, id))
-
-    def get_before(self, lineno: int, id: str) -> FrameInstance | None:
-        keys = sorted(self.frames.keys(), key=lambda k: k.lineno, reverse=True)
-        for key in keys:
-            if key.lineno < lineno and key.id == id:
-                return self.frames[key]
-        return None
-
-    def frame_keys(self) -> list[str]:
-        return [frame.id for frame in self.frames.values()]
+from frame_check_core._ast import WrappedNode
+from frame_check_core._models import (
+    ColumnAccess,
+    Diagnostic,
+    FrameHistory,
+    FrameHistoryKey,  # noqa: F401
+    FrameInstance,
+)
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -61,6 +18,56 @@ class FrameChecker(ast.NodeVisitor):
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: dict[str, ColumnAccess] = {}
         self.definitions: dict[str, ast.AST] = {}
+        self.diagnostics: list[Diagnostic] = []
+
+    @classmethod
+    def check(cls, code: str | ast.AST | PathLike[str]) -> Self:
+        checker = cls()
+        match code:
+            case PathLike():
+                with open(code, "r") as f:
+                    tree = ast.parse(f.read())
+            case str():
+                if code.endswith(".py"):
+                    with open(code, "r") as f:
+                        tree = ast.parse(f.read())
+                else:
+                    tree = ast.parse(code)
+            case ast.AST():
+                tree = code
+
+            case _:
+                raise TypeError(f"Unsupported type: {type(code)}")
+
+        checker.visit(tree)
+        # Generate diagnostics
+        checker._generate_diagnostics()
+        return checker
+
+    def _generate_diagnostics(self):
+        """Generate diagnostics from collected column accesses."""
+        for access in self.column_accesses.values():
+            if access.id not in access.frame.columns:
+                columns_list = "\n".join(f"  • {col}" for col in access.frame.columns)
+                message = f"Column '{access.id}' does not exist"
+                frame_hist = self.frames.get_before(access.lineno, access.frame.id)
+                hint = None
+                definition_location = None
+                if frame_hist is not None:
+                    hint = f"DataFrame '{access.frame.id}' was defined at line {frame_hist.lineno} with columns:\n{columns_list}"
+                    definition_location = (
+                        (frame_hist.data_arg.get("lineno").val or frame_hist.lineno),
+                        0,
+                    )
+
+                diagnostic = Diagnostic(
+                    message=message,
+                    severity="error",
+                    location=(access.lineno, 0),
+                    hint=hint,
+                    definition_location=definition_location,
+                )
+                self.diagnostics.append(diagnostic)
 
     @staticmethod
     def _is_dict(node: ast.Assign) -> bool:
@@ -149,39 +156,13 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def parse_file(filename: str) -> ast.AST:
-    """
-    Parse a Python source file into an AST.
-
-    Args:
-        filename: Path to the Python file to parse
-
-    Returns:
-        The AST representation of the file
-    """
-    with open(filename, "r") as file:
-        source = file.read()
-
-    return ast.parse(source, filename=filename)
-
-
 def main():
     import sys
 
     path = sys.argv[1]
-    tree = parse_file(path)
-
-    fc = FrameChecker()
-    fc.visit(tree)
-    # print(fc.definitions.keys())
-    # fc.frames.get_before(45, "df")
-    # fc.column_accesses
-    for access in fc.column_accesses.values():
-        if access.id not in access.frame.columns:
-            print()
-            print("-" * 78)
-            print(path + f":{access.lineno}")
-            print(
-                f"line[{access.lineno}]: TypeError: Column '{access.id}' not found in frame '{access.frame.id}' defined at {access.frame.lineno}"
-            )
-            print(f"\t\tWith data defined at {access.frame.data_arg.get('lineno').val}")
+    fc = FrameChecker.check(path)
+    for diagnostic in fc.diagnostics:
+        print()
+        print("-" * 78)
+        print(path + f":{diagnostic.location[0]}")
+        print(f"line[{diagnostic.location[0]}]: {diagnostic.message}")
