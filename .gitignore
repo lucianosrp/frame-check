@@ -152,4 +152,5 @@ type static type analyzer
 # Cython debug symbols
 cython_debug/
 
+# Zed extensions
 *.wasm
