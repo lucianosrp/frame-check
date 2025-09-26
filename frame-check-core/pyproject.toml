@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A static checker for DataFrames"
 readme = "README.md"
 authors = [
-    { name = "Luciano Scarpulla", email = "luciano@wingx-advance.com" }
+    { name = "Luciano Scarpulla", email = "66913960+lucianosrp@users.noreply.github.com"}
 ]
 requires-python = ">=3.12"
 dependencies = [
