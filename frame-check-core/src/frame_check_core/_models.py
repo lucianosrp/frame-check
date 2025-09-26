@@ -12,12 +12,26 @@ class FrameInstance:
     id: str
     data_arg: WrappedNode[ast.Dict | None]
     keywords: list[WrappedNode[ast.keyword]]
+    _columns: set[str] = field(default_factory=set)
 
-    @property
-    def columns(self) -> list[str]:
+    def _get_cols_from_data_arg(self) -> list[str]:
         arg = self.data_arg
         keys = arg.get("keys")
         return [key.value for key in keys.val] if keys.val is not None else []
+
+    def add_columns(self, *columns: str | WrappedNode[str]):
+        _cols_str = list(
+            filter(
+                lambda col: col is not None,
+                [col.val if isinstance(col, WrappedNode) else col for col in columns],
+            )
+        )
+
+        self._columns.update(_cols_str)  # type: ignore
+
+    @property
+    def columns(self) -> list[str]:
+        return sorted(set(self._get_cols_from_data_arg()).union(self._columns))
 
 
 @dataclass
@@ -50,8 +64,9 @@ class FrameHistory:
         key = FrameHistoryKey(frame.lineno, frame.id)
         self.frames[key] = frame
 
-    def get(self, id: str) -> list[FrameInstance]:
-        return [frame for frame in self.frames.values() if frame.id == id]
+    def get(self, id: str | None | WrappedNode[str]) -> list[FrameInstance]:
+        _id = id.val if isinstance(id, WrappedNode) else id
+        return [frame for frame in self.frames.values() if frame.id == _id]
 
     def get_at(self, lineno: int, id: str) -> FrameInstance | None:
         return self.frames.get(FrameHistoryKey(lineno, id))

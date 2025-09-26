@@ -24,7 +24,7 @@ df["NonExistentColumn"]
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
             location=(14, 0),
-            hint="DataFrame 'df' was defined at line 11 with columns:\n  • Name\n  • Age\n  • City\n  • Salary",
+            hint="DataFrame 'df' was defined at line 11 with columns:\n  • Age\n  • City\n  • Name\n  • Salary",
             definition_location=(4, 0),
         )
     ]
@@ -53,7 +53,7 @@ df["NonExistentColumn"]
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
             location=(14, 0),
-            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name\n  • Age\n  • City\n  • Salary",
+            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Age\n  • City\n  • Name\n  • Salary",
             definition_location=(5, 0),
         )
     ]

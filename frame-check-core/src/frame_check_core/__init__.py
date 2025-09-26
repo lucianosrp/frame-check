@@ -132,6 +132,15 @@ class FrameChecker(ast.NodeVisitor):
             if isinstance(target, ast.Name):
                 self.definitions[target.id] = node.value
 
+            elif isinstance(target, ast.Subscript):
+                subscript = WrappedNode[ast.Subscript](target)
+                subscript_value = subscript.get("value")
+                frames = self.frames.get(subscript_value.get("id"))
+                if frames:
+                    last_frame = frames[-1]
+                    col = subscript.get("slice").as_type(ast.Constant).get("value")
+                    last_frame.add_columns(col)
+
         self.maybe_assign_df(node)
         self.generic_visit(node)
 
