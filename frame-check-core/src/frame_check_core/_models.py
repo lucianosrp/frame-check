@@ -35,14 +35,14 @@ class FrameInstance:
 
 
 @dataclass
-class ColumnAccess:
+class ColumnInstance:
     _node: ast.Subscript
     lineno: int
     id: str
     frame: FrameInstance
 
 
-class FrameHistoryKey(NamedTuple):
+class LineIdKey(NamedTuple):
     lineno: int
     id: str
 
@@ -57,26 +57,48 @@ class Diagnostic:
 
 
 @dataclass
-class FrameHistory:
-    frames: dict[FrameHistoryKey, FrameInstance] = field(default_factory=dict)
+class InstanceHistory[I: FrameInstance | ColumnInstance]:
+    instances: dict[LineIdKey, I] = field(default_factory=dict)
 
-    def add(self, frame: FrameInstance):
-        key = FrameHistoryKey(frame.lineno, frame.id)
-        self.frames[key] = frame
+    def add(self, instance: I):
+        key = LineIdKey(instance.lineno, instance.id)
+        self.instances[key] = instance
 
-    def get(self, id: str | None | WrappedNode[str]) -> list[FrameInstance]:
+    def get(self, id: str | None | WrappedNode[str]) -> list[I]:
         _id = id.val if isinstance(id, WrappedNode) else id
-        return [frame for frame in self.frames.values() if frame.id == _id]
+        return [instance for instance in self.instances.values() if instance.id == _id]
 
-    def get_at(self, lineno: int, id: str) -> FrameInstance | None:
-        return self.frames.get(FrameHistoryKey(lineno, id))
+    def get_at(self, lineno: int, id: str) -> I | None:
+        return self.instances.get(LineIdKey(lineno, id))
 
-    def get_before(self, lineno: int, id: str) -> FrameInstance | None:
-        keys = sorted(self.frames.keys(), key=lambda k: k.lineno, reverse=True)
+    def get_before(self, lineno: int, id: str) -> I | None:
+        keys = sorted(self.instances.keys(), key=lambda k: k.lineno, reverse=True)
         for key in keys:
             if key.lineno < lineno and key.id == id:
-                return self.frames[key]
+                return self.instances[key]
         return None
 
-    def frame_keys(self) -> list[str]:
-        return [frame.id for frame in self.frames.values()]
+    def instance_keys(self) -> list[str]:
+        return [instance.id for instance in self.instances.values()]
+
+    def values(self) -> list[I]:
+        return list(self.instances.values())
+
+    def __len__(self) -> int:
+        return len(self.instances)
+
+    def __setitem__(self, key: LineIdKey, value: I):
+        self.instances[key] = value
+
+    def __getitem__(self, key: LineIdKey) -> I:
+        return self.instances[key]
+
+    def __contains__(self, item: LineIdKey) -> bool:
+        return item in self.instances
+
+    def contains_id(self, id: str) -> bool:
+        return any(instance.id == id for instance in self.instances.values())
+
+
+FrameHistory = InstanceHistory[FrameInstance]
+ColumnHistory = InstanceHistory[ColumnInstance]

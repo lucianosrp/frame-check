@@ -4,11 +4,12 @@ from typing import Self, cast
 
 from frame_check_core._ast import WrappedNode
 from frame_check_core._models import (
-    ColumnAccess,
+    ColumnHistory,
+    ColumnInstance,
     Diagnostic,
     FrameHistory,
-    FrameHistoryKey,  # noqa: F401
     FrameInstance,
+    LineIdKey,
 )
 
 
@@ -16,7 +17,7 @@ class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases: dict[str, str] = {}
         self.frames: FrameHistory = FrameHistory()
-        self.column_accesses: dict[str, ColumnAccess] = {}
+        self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, ast.AST] = {}
         self.diagnostics: list[Diagnostic] = []
 
@@ -154,12 +155,12 @@ class FrameChecker(ast.NodeVisitor):
 
     def visit_Subscript(self, node: ast.Subscript):
         n = WrappedNode[ast.Subscript](node)
-        if (frame_id := n.get("value").get("id").val) in self.frames.frame_keys():
+        if (frame_id := n.get("value").get("id").val) in self.frames.instance_keys():
             if isinstance(const := n.get("slice").val, ast.Constant):
                 frame = self.frames.get_before(node.lineno, frame_id)
                 if frame is not None:
-                    self.column_accesses[const.value] = ColumnAccess(
-                        node, node.lineno, const.value, frame
+                    self.column_accesses[LineIdKey(node.lineno, const.value)] = (
+                        ColumnInstance(node, node.lineno, const.value, frame)
                     )
 
         self.generic_visit(node)
