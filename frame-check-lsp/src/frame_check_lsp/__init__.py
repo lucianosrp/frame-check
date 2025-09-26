@@ -1,12 +1,14 @@
 import ast
 import contextlib
 
-from frame_check_core import FrameChecker
 from lsprotocol import types
 from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
 
+from frame_check_core import FrameChecker
+
 server = LanguageServer("frame-check-lsp", "v0.1")
+fc = FrameChecker()
 
 
 @server.feature(types.TEXT_DOCUMENT_DID_CHANGE)
@@ -15,13 +17,14 @@ server = LanguageServer("frame-check-lsp", "v0.1")
 async def frame_diagnostics(
     ls: LanguageServer, params: types.DidOpenTextDocumentParams
 ):
+    global fc
     text_doc = ls.workspace.get_text_document(params.text_document.uri)
     contents = text_doc.source
     ls_diagnostics = []
 
     with contextlib.suppress(SyntaxError):
         tree = ast.parse(contents)
-        fc = FrameChecker.check(tree)
+        fc = fc.check(tree)
         for diagnostic in fc.diagnostics:
             ls_diagnostic = types.Diagnostic(
                 range=types.Range(
