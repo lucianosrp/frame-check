@@ -57,3 +57,37 @@ df["NonExistentColumn"]
             definition_location=(5, 0),
         )
     ]
+
+
+def test_diagnostics_multi_col_access():
+    code = """
+import pandas as pd
+
+df = pd.DataFrame(
+{
+    "Name": ["John", "Anna", "Peter", "Linda"],
+}
+)
+
+# Non existent column
+df["NonExistentColumn"]
+df["NonExistentColumn"]
+    """
+
+    fc = FrameChecker.check(code)
+    assert fc.diagnostics == [
+        Diagnostic(
+            message="Column 'NonExistentColumn' does not exist",
+            severity="error",
+            location=(11, 0),
+            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name",
+            definition_location=(5, 0),
+        ),
+        Diagnostic(
+            message="Column 'NonExistentColumn' does not exist",
+            severity="error",
+            location=(12, 0),
+            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name",
+            definition_location=(5, 0),
+        ),
+    ]
