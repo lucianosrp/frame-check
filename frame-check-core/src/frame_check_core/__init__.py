@@ -26,7 +26,7 @@ class FrameChecker(ast.NodeVisitor):
         self.source = ""
 
     @classmethod
-    def check(cls, code: str | ast.AST | Path) -> Self:
+    def check(cls, code: str | ast.Module | Path) -> Self:
         checker = cls()
         if isinstance(code, (str, Path)) and os.path.isfile(str(code)):
             with open(str(code), "r") as f:
@@ -36,7 +36,7 @@ class FrameChecker(ast.NodeVisitor):
         elif isinstance(code, str):
             tree = ast.parse(code)
             checker.source = code
-        elif isinstance(code, ast.AST):
+        elif isinstance(code, ast.Module):
             tree = code
             checker.source = ""
         else:
@@ -107,7 +107,7 @@ class FrameChecker(ast.NodeVisitor):
         else:
             return cast(WrappedNode[ast.Dict | None], arg0)
 
-    def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":
+    def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":  # type: ignore[return]
         n = WrappedNode[ast.Assign](node)
         original_arg = n.get("value").get("args")[0]
         data_arg = self.resolve_args(n.get("value").get("args"))
@@ -190,7 +190,9 @@ class FrameChecker(ast.NodeVisitor):
             if (
                 frame_id := n.get("value").get("id").val
             ) in self.frames.instance_keys():
-                if isinstance(const := n.get("slice").val, ast.Constant):
+                if isinstance(const := n.get("slice").val, ast.Constant) and isinstance(
+                    const.value, str
+                ):
                     frame = self.frames.get_before(node.lineno, frame_id)
                     if frame is not None:
                         start_col = node.value.end_col_offset or 0

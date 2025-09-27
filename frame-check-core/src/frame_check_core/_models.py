@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import NamedTuple
+from typing import NamedTuple, cast
 
 from frame_check_core._ast import WrappedNode
 
@@ -21,7 +21,11 @@ class FrameInstance:
             return []
         if isinstance(arg.val, ast.Dict):
             keys = arg.get("keys")
-            return [key.value for key in keys.val] if keys.val is not None else []
+            return (
+                [cast(str, key.value) for key in keys.val]
+                if keys.val is not None
+                else []
+            )
         # If wrapped around Assign or other, try to get inner Dict
         if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
             inner_dict = WrappedNode(arg.val.value)

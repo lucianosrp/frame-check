@@ -31,3 +31,6 @@ jobs:
 
       - name: Run frame-check-core tests
         run: uv run --directory frame-check-core pytest -v
+
+      - name: mypy check
+        run: uv run mypy . --check-untyped-defs
