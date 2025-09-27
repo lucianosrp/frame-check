@@ -21,11 +21,20 @@ df["NonExistentColumn"]
     fc = FrameChecker.check(code)
     assert fc.diagnostics == [
         Diagnostic(
+            column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
-            location=(14, 0),
-            hint="DataFrame 'df' was defined at line 11 with columns:\n  • Age\n  • City\n  • Name\n  • Salary",
-            definition_location=(4, 0),
+            location=(14, 2),
+            underline_length=21,
+            hint=[
+                "DataFrame 'df' created at line 11 from data defined at line 4 with columns:",
+                "  • Age",
+                "  • City",
+                "  • Name",
+                "  • Salary",
+            ],
+            definition_location=(11, 0),
+            data_source_location=(4, 0),
         )
     ]
 
@@ -50,11 +59,20 @@ df["NonExistentColumn"]
     fc = FrameChecker.check(code)
     assert fc.diagnostics == [
         Diagnostic(
+            column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
-            location=(14, 0),
-            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Age\n  • City\n  • Name\n  • Salary",
-            definition_location=(5, 0),
+            location=(14, 2),
+            underline_length=21,
+            hint=[
+                "DataFrame 'df' created at line 4 with columns:",
+                "  • Age",
+                "  • City",
+                "  • Name",
+                "  • Salary",
+            ],
+            definition_location=(4, 0),
+            data_source_location=None,
         )
     ]
 
@@ -77,18 +95,30 @@ df["NonExistentColumn"]
     fc = FrameChecker.check(code)
     assert fc.diagnostics == [
         Diagnostic(
+            column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
-            location=(11, 0),
-            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name",
-            definition_location=(5, 0),
+            location=(11, 2),
+            underline_length=21,
+            hint=[
+                "DataFrame 'df' created at line 4 with columns:",
+                "  • Name",
+            ],
+            definition_location=(4, 0),
+            data_source_location=None,
         ),
         Diagnostic(
+            column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist",
             severity="error",
-            location=(12, 0),
-            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name",
-            definition_location=(5, 0),
+            location=(12, 2),
+            underline_length=21,
+            hint=[
+                "DataFrame 'df' created at line 4 with columns:",
+                "  • Name",
+            ],
+            definition_location=(4, 0),
+            data_source_location=None,
         ),
     ]
 
@@ -110,11 +140,17 @@ df["NameLower"] = df["Name"].str.lower()
     fc = FrameChecker.check(code)
     assert fc.diagnostics == [
         Diagnostic(
+            column_name="NameLower",
             message="Column 'NameLower' does not exist",
             severity="error",
-            location=(10, 0),
-            hint="DataFrame 'df' was defined at line 4 with columns:\n  • Name",
-            definition_location=(5, 0),
+            location=(10, 2),
+            underline_length=13,
+            hint=[
+                "DataFrame 'df' created at line 4 with columns:",
+                "  • Name",
+            ],
+            definition_location=(4, 0),
+            data_source_location=None,
         ),
         # TODO: we could had a hint that says something like:
         # NameLower is later defined at line 11
