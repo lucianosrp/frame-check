@@ -4,11 +4,12 @@ from typing import Self, cast
 
 from frame_check_core._ast import WrappedNode
 from frame_check_core._models import (
-    ColumnAccess,
+    ColumnHistory,
+    ColumnInstance,
     Diagnostic,
     FrameHistory,
-    FrameHistoryKey,  # noqa: F401
     FrameInstance,
+    LineIdKey,
 )
 
 
@@ -16,9 +17,10 @@ class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases: dict[str, str] = {}
         self.frames: FrameHistory = FrameHistory()
-        self.column_accesses: dict[str, ColumnAccess] = {}
+        self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, ast.AST] = {}
         self.diagnostics: list[Diagnostic] = []
+        self._col_assignment_subscripts: set[ast.Subscript] = set()
 
     @classmethod
     def check(cls, code: str | ast.AST | PathLike[str]) -> Self:
@@ -132,6 +134,26 @@ class FrameChecker(ast.NodeVisitor):
             if isinstance(target, ast.Name):
                 self.definitions[target.id] = node.value
 
+            elif isinstance(target, ast.Subscript):
+                subscript = WrappedNode[ast.Subscript](target)
+                subscript_value = subscript.get("value")
+                frames = self.frames.get(subscript_value.get("id"))
+                if frames:
+                    last_frame = frames[-1]
+                    # Create a new frame instance for the column
+                    new_frame = FrameInstance(
+                        node,
+                        node.lineno,
+                        last_frame.id,
+                        last_frame.data_arg,
+                        last_frame.keywords,
+                    )
+                    col = subscript.get("slice").as_type(ast.Constant).get("value")
+                    new_frame.add_columns(col)
+                    self.frames.add(new_frame)
+                    # Store subscript as it is a column assignment
+                    self._col_assignment_subscripts.add(target)
+
         self.maybe_assign_df(node)
         self.generic_visit(node)
 
@@ -144,14 +166,19 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Subscript(self, node: ast.Subscript):
-        n = WrappedNode[ast.Subscript](node)
-        if (frame_id := n.get("value").get("id").val) in self.frames.frame_keys():
-            if isinstance(const := n.get("slice").val, ast.Constant):
-                frame = self.frames.get_before(node.lineno, frame_id)
-                if frame is not None:
-                    self.column_accesses[const.value] = ColumnAccess(
-                        node, node.lineno, const.value, frame
-                    )
+        if (  # ignore subscript if it is a column assignment
+            node not in self._col_assignment_subscripts
+        ):
+            n = WrappedNode[ast.Subscript](node)
+            if (
+                frame_id := n.get("value").get("id").val
+            ) in self.frames.instance_keys():
+                if isinstance(const := n.get("slice").val, ast.Constant):
+                    frame = self.frames.get_before(node.lineno, frame_id)
+                    if frame is not None:
+                        self.column_accesses[LineIdKey(node.lineno, const.value)] = (
+                            ColumnInstance(node, node.lineno, const.value, frame)
+                        )
 
         self.generic_visit(node)
 

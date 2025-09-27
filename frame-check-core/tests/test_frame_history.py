@@ -1,5 +1,6 @@
 import pytest
-from frame_check_core import FrameChecker, FrameHistoryKey
+
+from frame_check_core import FrameChecker, LineIdKey
 
 
 def test_simple_frame_history():
@@ -11,8 +12,8 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
     fc = FrameChecker.check(code)
 
-    assert fc.frames.frame_keys() == ["df"]
-    assert list(fc.frames.frames.keys()) == [FrameHistoryKey(4, "df")]
+    assert fc.frames.instance_keys() == ["df"]
+    assert list(fc.frames.instances.keys()) == [LineIdKey(4, "df")]
 
 
 @pytest.mark.xfail(reason="Not implemented yet")
@@ -26,8 +27,8 @@ df = df[["a"]]
 
     fc = FrameChecker.check(code)
 
-    assert fc.frames.frame_keys() == ["df"]
-    assert list(fc.frames.frames.keys()) == [
-        FrameHistoryKey(4, "df"),
-        FrameHistoryKey(5, "df"),
+    assert fc.frames.instance_keys() == ["df"]
+    assert list(fc.frames.instances.keys()) == [
+        LineIdKey(4, "df"),
+        LineIdKey(5, "df"),
     ]

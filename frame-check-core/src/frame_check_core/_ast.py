@@ -66,6 +66,19 @@ class WrappedNode[T: SupportedNode | None]:
         """
         return f"WrappedNode({repr(self.val)})"
 
+    def as_type[N: SupportedNode](self, type_: type[N]) -> "WrappedNode[N]":
+        """
+        Cast the wrapped value to the given type.
+
+        Args:
+            type_: The type to cast to.
+
+        Returns:
+            A WrappedNode with the casted value.
+        """
+        _ = type_
+        return self  # type: ignore
+
     @overload
     def get(
         self, attr: Literal["args"]
@@ -112,6 +125,11 @@ class WrappedNode[T: SupportedNode | None]:
     def get(
         self: "WrappedNode[ast.Subscript]", attr: Literal["slice"]
     ) -> "WrappedNode[ast.Constant | ast.Compare]": ...
+
+    @overload
+    def get(
+        self: "WrappedNode[ast.Constant]", attr: Literal["value"]
+    ) -> "WrappedNode[str]": ...
 
     @overload
     def get(self: "WrappedNode", attr: Literal["lineno"]) -> "WrappedNode[int]": ...
