@@ -1,5 +1,4 @@
 import ast
-from operator import getitem
 from typing import Any, Literal, overload
 
 SupportedNode = (
@@ -156,10 +155,10 @@ class WrappedNode[T: SupportedNode | None]:
         """
         return WrappedNode(getattr(self.val, attr, None))
 
-    def __getitem__[V: ast.Dict | ast.Name](
-        self: "WrappedNode[list[V]]", index: int
-    ) -> "WrappedNode[V]":
-        return WrappedNode(getitem(self.val or [None] * index, index))
+    def __getitem__(self, index: int) -> "WrappedNode":
+        if isinstance(self.val, list) and 0 <= index < len(self.val):
+            return WrappedNode(self.val[index])
+        return WrappedNode(None)
 
     @property
     def targets(self):
