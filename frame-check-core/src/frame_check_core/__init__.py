@@ -1,8 +1,10 @@
 import ast
-from os import PathLike
+import os
+from pathlib import Path
 from typing import Self, cast
 
 from frame_check_core._ast import WrappedNode
+from frame_check_core._message import print_diagnostics
 from frame_check_core._models import (
     ColumnHistory,
     ColumnInstance,
@@ -21,25 +23,24 @@ class FrameChecker(ast.NodeVisitor):
         self.definitions: dict[str, ast.AST] = {}
         self.diagnostics: list[Diagnostic] = []
         self._col_assignment_subscripts: set[ast.Subscript] = set()
+        self.source = ""
 
     @classmethod
-    def check(cls, code: str | ast.AST | PathLike[str]) -> Self:
+    def check(cls, code: str | ast.AST | Path) -> Self:
         checker = cls()
-        match code:
-            case PathLike():
-                with open(code, "r") as f:
-                    tree = ast.parse(f.read())
-            case str():
-                if code.endswith(".py"):
-                    with open(code, "r") as f:
-                        tree = ast.parse(f.read())
-                else:
-                    tree = ast.parse(code)
-            case ast.AST():
-                tree = code
-
-            case _:
-                raise TypeError(f"Unsupported type: {type(code)}")
+        if isinstance(code, (str, Path)) and os.path.isfile(str(code)):
+            with open(str(code), "r") as f:
+                source = f.read()
+                tree = ast.parse(source)
+            checker.source = source
+        elif isinstance(code, str):
+            tree = ast.parse(code)
+            checker.source = code
+        elif isinstance(code, ast.AST):
+            tree = code
+            checker.source = ""
+        else:
+            raise TypeError(f"Unsupported type: {type(code)}")
 
         checker.visit(tree)
         # Generate diagnostics
@@ -50,24 +51,32 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                columns_list = "\n".join(f"  • {col}" for col in access.frame.columns)
                 message = f"Column '{access.id}' does not exist"
-                frame_hist = self.frames.get_before(access.lineno, access.frame.id)
-                hint = None
-                definition_location = None
-                if frame_hist is not None:
-                    hint = f"DataFrame '{access.frame.id}' was defined at line {frame_hist.lineno} with columns:\n{columns_list}"
-                    definition_location = (
-                        (frame_hist.data_arg.get("lineno").val or frame_hist.lineno),
-                        0,
+                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
+                if access.frame.data_source_lineno is not None:
+                    data_line += (
+                        f" from data defined at line {access.frame.data_source_lineno}"
                     )
+                data_line += " with columns:"
+                hints = [data_line]
+                for col in sorted(access.frame.columns):
+                    hints.append(f"  • {col}")
+                definition_location = (access.frame.lineno, 0)
+                data_source_location = (
+                    (access.frame.data_source_lineno, 0)
+                    if access.frame.data_source_lineno is not None
+                    else None
+                )
 
                 diagnostic = Diagnostic(
+                    column_name=access.id,
                     message=message,
                     severity="error",
-                    location=(access.lineno, 0),
-                    hint=hint,
+                    location=(access.lineno, access.start_col),
+                    underline_length=access.underline_length,
+                    hint=hints,
                     definition_location=definition_location,
+                    data_source_location=data_source_location,
                 )
                 self.diagnostics.append(diagnostic)
 
@@ -100,9 +109,16 @@ class FrameChecker(ast.NodeVisitor):
 
     def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":
         n = WrappedNode[ast.Assign](node)
+        original_arg = n.get("value").get("args")[0]
         data_arg = self.resolve_args(n.get("value").get("args"))
         call_keywords = n.get("value").get("keywords")
         name = n.targets[0].get("id")
+
+        data_source_lineno = None
+        if isinstance(original_arg.val, ast.Name):
+            def_node = self.definitions.get(original_arg.val.id)
+            if isinstance(def_node, ast.Assign):
+                data_source_lineno = def_node.lineno
 
         if (
             name.val is not None
@@ -118,6 +134,7 @@ class FrameChecker(ast.NodeVisitor):
                     WrappedNode[ast.keyword](kw)
                     for kw in call_keywords.val  # ty: ignore
                 ],
+                data_source_lineno=data_source_lineno,
             )
 
     def maybe_assign_df(self, node: ast.Assign) -> bool:
@@ -132,7 +149,7 @@ class FrameChecker(ast.NodeVisitor):
         # Store definitions:
         for target in node.targets:
             if isinstance(target, ast.Name):
-                self.definitions[target.id] = node.value
+                self.definitions[target.id] = node
 
             elif isinstance(target, ast.Subscript):
                 subscript = WrappedNode[ast.Subscript](target)
@@ -176,20 +193,28 @@ class FrameChecker(ast.NodeVisitor):
                 if isinstance(const := n.get("slice").val, ast.Constant):
                     frame = self.frames.get_before(node.lineno, frame_id)
                     if frame is not None:
+                        start_col = node.value.end_col_offset or 0
+                        underline_length = (node.end_col_offset or 0) - start_col
                         self.column_accesses[LineIdKey(node.lineno, const.value)] = (
-                            ColumnInstance(node, node.lineno, const.value, frame)
+                            ColumnInstance(
+                                node,
+                                node.lineno,
+                                const.value,
+                                frame,
+                                start_col,
+                                underline_length,
+                            )
                         )
 
-        self.generic_visit(node)
+            self.generic_visit(node)
 
 
 def main():
     import sys
 
+    if len(sys.argv) != 2:
+        print("Usage: python -m frame_check_core <file.py>", file=sys.stderr)
+        sys.exit(1)
     path = sys.argv[1]
     fc = FrameChecker.check(path)
-    for diagnostic in fc.diagnostics:
-        print()
-        print("-" * 78)
-        print(path + f":{diagnostic.location[0]}")
-        print(f"line[{diagnostic.location[0]}]: {diagnostic.message}")
+    print_diagnostics(fc, path)

@@ -12,12 +12,22 @@ class FrameInstance:
     id: str
     data_arg: WrappedNode[ast.Dict | None]
     keywords: list[WrappedNode[ast.keyword]]
+    data_source_lineno: int | None = None
     _columns: set[str] = field(default_factory=set)
 
     def _get_cols_from_data_arg(self) -> list[str]:
         arg = self.data_arg
-        keys = arg.get("keys")
-        return [key.value for key in keys.val] if keys.val is not None else []
+        if arg.val is None:
+            return []
+        if isinstance(arg.val, ast.Dict):
+            keys = arg.get("keys")
+            return [key.value for key in keys.val] if keys.val is not None else []
+        # If wrapped around Assign or other, try to get inner Dict
+        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
+            inner_dict = WrappedNode(arg.val.value)
+            keys = inner_dict.get("keys")
+            return [key.value for key in keys.val] if keys.val is not None else []
+        return []
 
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
@@ -40,6 +50,8 @@ class ColumnInstance:
     lineno: int
     id: str
     frame: FrameInstance
+    start_col: int
+    underline_length: int
 
 
 class LineIdKey(NamedTuple):
@@ -49,11 +61,14 @@ class LineIdKey(NamedTuple):
 
 @dataclass
 class Diagnostic:
+    column_name: str
     message: str
     severity: str
     location: tuple[int, int]
-    hint: str | None = None
+    underline_length: int = 0
+    hint: list[str] | None = None
     definition_location: tuple[int, int] | None = None
+    data_source_location: tuple[int, int] | None = None
 
 
 @dataclass

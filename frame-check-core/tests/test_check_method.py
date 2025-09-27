@@ -1,5 +1,3 @@
-import ast
-
 from frame_check_core import FrameChecker
 
 
@@ -25,8 +23,7 @@ data = {'A': [1, 2, 3], 'B': [4, 5, 6]}
 df = pd.DataFrame(data)
 value = df['A']
 """
-    tree = ast.parse(code)
-    checker = FrameChecker.check(tree)
+    checker = FrameChecker.check(code)
     assert len(checker.frames.instances) == 1
     assert len(checker.column_accesses) == 1
     assert checker.column_accesses.contains_id("A")

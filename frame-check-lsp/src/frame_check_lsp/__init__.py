@@ -1,11 +1,10 @@
 import ast
 import contextlib
 
+from frame_check_core import FrameChecker
 from lsprotocol import types
 from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
-
-from frame_check_core import FrameChecker
 
 server = LanguageServer("frame-check-lsp", "v0.1")
 fc = FrameChecker()
@@ -20,7 +19,7 @@ async def frame_diagnostics(
     global fc
     text_doc = ls.workspace.get_text_document(params.text_document.uri)
     contents = text_doc.source
-    ls_diagnostics = []
+    ls_diagnostics: list[types.Diagnostic] = []
 
     with contextlib.suppress(SyntaxError):
         tree = ast.parse(contents)
@@ -32,8 +31,9 @@ async def frame_diagnostics(
                         diagnostic.location[0] - 1, diagnostic.location[1]
                     ),
                     end=types.Position(
-                        diagnostic.location[0] - 1, 80
-                    ),  # Assuming 80 chars as line length
+                        diagnostic.location[0] - 1,
+                        diagnostic.location[1] + diagnostic.underline_length,
+                    ),
                 ),
                 message=diagnostic.message,
                 source="Frame Checker",
@@ -46,22 +46,65 @@ async def frame_diagnostics(
                 diagnostic.hint is not None
                 and diagnostic.definition_location is not None
             ):
+                # Hint at DataFrame creation site
+                creation_hint_msg = "\n".join(diagnostic.hint)
                 ls_diagnostics.append(
                     types.Diagnostic(
                         range=types.Range(
                             start=types.Position(
-                                diagnostic.definition_location[0] - 1,
-                                diagnostic.definition_location[1],
+                                diagnostic.definition_location[0] - 1, 0
                             ),
                             end=types.Position(
                                 diagnostic.definition_location[0] - 1, 80
-                            ),  # Assuming 80 chars as line length
+                            ),
                         ),
-                        message=diagnostic.hint,
+                        message=creation_hint_msg,
                         source="Frame Checker",
                         severity=types.DiagnosticSeverity.Hint,
                     )
                 )
+
+                # Optional hint at data definition site
+                if (
+                    diagnostic.data_source_location is not None
+                    and len(diagnostic.hint) > 1
+                ):
+                    data_hint_msg = "Data defined here with columns:\n" + "\n".join(
+                        diagnostic.hint[1:]
+                    )
+                    ls_diagnostics.append(
+                        types.Diagnostic(
+                            range=types.Range(
+                                start=types.Position(
+                                    diagnostic.data_source_location[0] - 1, 0
+                                ),
+                                end=types.Position(
+                                    diagnostic.data_source_location[0] - 1, 80
+                                ),
+                            ),
+                            message=data_hint_msg,
+                            source="Frame Checker",
+                            severity=types.DiagnosticSeverity.Hint,
+                        )
+                    )
+                elif diagnostic.data_source_location is not None:
+                    # Fallback if no separate columns list
+                    data_hint_msg = "\n".join(diagnostic.hint)
+                    ls_diagnostics.append(
+                        types.Diagnostic(
+                            range=types.Range(
+                                start=types.Position(
+                                    diagnostic.data_source_location[0] - 1, 0
+                                ),
+                                end=types.Position(
+                                    diagnostic.data_source_location[0] - 1, 80
+                                ),
+                            ),
+                            message=data_hint_msg,
+                            source="Frame Checker",
+                            severity=types.DiagnosticSeverity.Hint,
+                        )
+                    )
         # Send diagnostics (moved outside the loop to always run, even with empty diagnostics)
         ls.text_document_publish_diagnostics(
             types.PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=ls_diagnostics)
