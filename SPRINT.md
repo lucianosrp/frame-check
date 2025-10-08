@@ -14,22 +14,24 @@ Welcome to the frame-check sprint! This project aims to bring static type checki
 To enter the sprint you must be able to run the following script:
 
 <details>
-<summary>Using curl (quick and recommended)</summary>
+<summary>Linux and MacOs</summary>
 
 ```
-curl -LsSf https://raw.githubusercontent.com/lucianosrp/frame-check/refs/heads/sprint/enter.py | python
+curl -LsSf https://raw.githubusercontent.com/lucianosrp/frame-check/main/scripts/enter.sh | bash
 ```
 
 </details>
 
 <details>
-<summary>Using git</summary>
+<summary>Windows</summary>
 
 ```
-git clone https://github.com/lucianosrp/frame-check.git 2>/dev/null || true && cd frame-check && python enter.py
+iex (irm https://raw.githubusercontent.com/lucianosrp/frame-check/main/scripts/enter.ps1)
 ```
 
 </details>
+
+
 
 
 ## 🚀 How to Contribute
