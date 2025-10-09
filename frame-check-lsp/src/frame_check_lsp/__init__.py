@@ -1,5 +1,6 @@
 import ast
 import contextlib
+import sys
 
 from frame_check_core import FrameChecker
 from lsprotocol import types
@@ -112,7 +113,18 @@ async def frame_diagnostics(
 
 
 def main():
-    start_server(server)
+    # Remove --stdio argument if present, as pygls handles stdio by default
+    args = [arg for arg in sys.argv[1:] if arg != "--stdio"]
+
+    # Temporarily replace sys.argv to remove --stdio
+    original_argv = sys.argv
+    sys.argv = [sys.argv[0]] + args
+
+    try:
+        start_server(server)
+    finally:
+        # Restore original argv
+        sys.argv = original_argv
 
 
 if __name__ == "__main__":

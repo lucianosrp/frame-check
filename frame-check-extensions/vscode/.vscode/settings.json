@@ -1,0 +1,17 @@
+{
+    "typescript.preferences.includePackageJsonAutoImports": "on",
+    "typescript.suggest.autoImports": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "files.exclude": {
+        "out": false,
+        "**/*.vsix": true
+    },
+    "search.exclude": {
+        "out": true,
+        "node_modules": true,
+        "**/*.vsix": true
+    },
+    "typescript.tsc.autoDetect": "on"
+}

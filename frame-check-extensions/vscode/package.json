@@ -1,0 +1,84 @@
+{
+  "name": "frame-check",
+  "displayName": "Frame Check",
+  "description": "Real-time DataFrame column validation for Python",
+  "version": "0.1.0",
+  "publisher": "frame-check",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters"
+  ],
+  "keywords": [
+    "python",
+    "pandas",
+    "dataframe",
+    "validation",
+    "lsp"
+  ],
+  "activationEvents": [
+    "onLanguage:python"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "python",
+        "extensions": [".py"]
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Frame Check",
+      "properties": {
+        "frameCheck.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable Frame Check language server"
+        },
+        "frameCheck.serverPath": {
+          "type": "string",
+          "default": "frame-check-lsp",
+          "description": "Path to the frame-check-lsp executable"
+        },
+        "frameCheck.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the communication between VS Code and the language server"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "frameCheck.restart",
+        "title": "Restart Frame Check Language Server",
+        "category": "Frame Check"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucianosrp/frame-check.git"
+  },
+  "license": "MIT"
+}
