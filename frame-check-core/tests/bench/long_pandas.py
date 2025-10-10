@@ -2,7 +2,10 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import (  # type: ignore [import-not-found]
+    MinMaxScaler,
+    StandardScaler,
+)
 
 # Initialize scalers
 scaler = MinMaxScaler()
