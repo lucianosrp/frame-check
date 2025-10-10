@@ -34,3 +34,10 @@ jobs:
 
       - name: mypy check
         run: uv run mypy . --check-untyped-defs
+
+      - name: Run the benchmarks
+        uses: CodSpeedHQ/action@v4
+        with:
+          mode: instrumentation
+          run: uv run pytest --codspeed
+          token: ${{ secrets.CODSPEED_TOKEN }}
