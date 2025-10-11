@@ -27,6 +27,22 @@ class FrameChecker(ast.NodeVisitor):
 
     @classmethod
     def check(cls, code: str | ast.Module | Path) -> Self:
+        """Check the given code for DataFrame column access issues.
+        This is the main entry point for the FrameChecker.
+
+        Parses the provided code, analyzes it for potential column access errors
+        in pandas DataFrames, and generates diagnostics.
+
+        Args:
+            code (str | ast.Module | Path): The code to check. Can be a string of Python code,
+                a file path to a Python file, or an already parsed AST module.
+
+        Returns:
+            Self: An instance of FrameChecker with the analysis completed and diagnostics generated.
+
+        Raises:
+            TypeError: If the code parameter is not one of the supported types.
+        """
         checker = cls()
         if isinstance(code, (str, Path)) and os.path.isfile(str(code)):
             with open(str(code), "r") as f:
