@@ -182,7 +182,7 @@ class FrameChecker(ast.NodeVisitor):
                 break
         if usecols_kw is None:
             return None
-        usecols_value = WrappedNode(usecols_kw.value)
+        usecols_value = WrappedNode[ast.List | ast.Name](usecols_kw.value)
         df_name = n.targets[0].get("id").val
         assert df_name is not None
         data_source_lineno = None
@@ -201,12 +201,12 @@ class FrameChecker(ast.NodeVisitor):
                 return None
         if not all(isinstance(e, ast.Constant) for e in elts):
             return None
-        elts = cast(list[ast.Constant], elts)
-        if all(isinstance(e.value, int) for e in elts):
+        elts_const = cast(list[ast.Constant], elts)
+        if all(isinstance(e.value, int) for e in elts_const):
             # Passing indices not column names
             return None
-        if all(isinstance(e.value, str) for e in elts):
-            columns = cast(list[str], [e.value for e in elts])
+        if all(isinstance(e.value, str) for e in elts_const):
+            columns = cast(list[str], [e.value for e in elts_const])
         else:
             return None
 
@@ -250,6 +250,7 @@ class FrameChecker(ast.NodeVisitor):
                 data_source_lineno=data_source_lineno,
                 _columns=self.get_cols_from_data_arg(data_arg),
             )
+        return None
 
     def maybe_assign_df(self, node: ast.Assign) -> bool:
         maybe_df = self.maybe_get_df(node)
