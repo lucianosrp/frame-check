@@ -8,3 +8,15 @@ def test_import_alias():
     fc = FrameChecker.check(code)
 
     assert fc.import_aliases == {"pandas": "pd"}
+
+
+def test_import_full():
+    from frame_check_core import FrameChecker
+
+    code = """
+    import pandas
+    """.strip()
+
+    fc = FrameChecker.check(code)
+
+    assert fc.import_aliases == {"pandas": "pandas"}
