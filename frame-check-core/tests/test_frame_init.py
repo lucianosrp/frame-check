@@ -1,5 +1,6 @@
 from frame_check_core import FrameChecker
 
+
 def test_frame_init_dict_arg():
     code = """
 import pandas as pd
@@ -13,6 +14,7 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     assert frame_instance.id == "df"
     assert frame_instance.columns == ["a", "b"]
     assert frame_instance.lineno == 4
+
 
 def test_frame_init_list_of_dict_arg():
     code = """

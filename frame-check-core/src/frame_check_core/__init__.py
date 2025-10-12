@@ -281,7 +281,9 @@ class FrameChecker(ast.NodeVisitor):
                         node,
                         node.lineno,
                         last_frame.id,
-                        cast(WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg),
+                        cast(
+                            WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg
+                        ),
                         last_frame.keywords,
                         _columns=set(last_frame._columns),
                     )

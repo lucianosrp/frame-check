@@ -16,7 +16,6 @@ class FrameInstance:
     _columns: set[str] = field(default_factory=set)
 
     def _get_cols_from_data_arg(self) -> list[str]:
-        
         arg = self.data_arg
         if arg.val is None:
             return []
@@ -24,7 +23,7 @@ class FrameInstance:
             dict_node = cast(ast.Dict, arg.val)
             keys_nodes = dict_node.keys
             cols: list[str] = []
-            
+
             for k in keys_nodes:
                 if isinstance(k, ast.Constant) and k.value is not None:
                     cols.append(str(k.value))
@@ -35,7 +34,7 @@ class FrameInstance:
             inner_dict = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return [str(key.value) for key in keys.val] if keys.val is not None else []
-        
+
         # If wrapped around List
         if isinstance(arg.val, ast.List):
             cols = []
