@@ -31,3 +31,6 @@ dev = [
 
 [tool.pyright]
 typeCheckingMode = "basic"
+
+[tool.ruff]
+exclude =['frame-check-extensions']
