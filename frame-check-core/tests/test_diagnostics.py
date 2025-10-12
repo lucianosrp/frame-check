@@ -162,6 +162,7 @@ df["NameLower"] = df["Name"].str.lower()
         # NameLower is later defined at line 11
     ]
 
+
 def test_diagnostics_with_col_recommendation_for_similarity_above90percents():
     code = """
 import pandas as pd
@@ -194,7 +195,7 @@ df["EmpolyeeName"]
                 "  • dept",
                 "  • employee_id",
                 "  • employee_name",
-                "  • paygrade"
+                "  • paygrade",
             ],
             definition_location=(13, 0),
             data_source_location=(5, 0),

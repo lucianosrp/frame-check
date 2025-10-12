@@ -1,5 +1,6 @@
 import functools
 
+
 @functools.cache
 def jaro_winkler(s1, s2):
     s1, s2 = s1.lower(), s2.lower()
@@ -47,13 +48,13 @@ def jaro_winkler(s1, s2):
     prefix = min(4, prefix)
 
     return jaro + 0.1 * prefix * (1 - jaro)
-        
+
+
 def zero_deps_jaro_winkler(target_col, existing_cols):
     jw_distances_dict = {
-        col: abs(jaro_winkler(target_col, col))
-        for col in existing_cols
+        col: abs(jaro_winkler(target_col, col)) for col in existing_cols
     }
-        
+
     target_value = max(jw_distances_dict.values())
     if target_value > 0.9:
         index = list(jw_distances_dict.values()).index(target_value)

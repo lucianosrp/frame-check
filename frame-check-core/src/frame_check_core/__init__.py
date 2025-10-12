@@ -16,6 +16,7 @@ from frame_check_core._models import (
 
 from frame_check_core._col_similarity import zero_deps_jaro_winkler
 
+
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases: dict[str, str] = {}
@@ -70,7 +71,7 @@ class FrameChecker(ast.NodeVisitor):
         # Generate diagnostics
         checker._generate_diagnostics()
         return checker
-    
+
     def _generate_diagnostics(self):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
