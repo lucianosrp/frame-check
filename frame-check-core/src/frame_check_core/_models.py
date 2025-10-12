@@ -16,7 +16,6 @@ class FrameInstance:
     _columns: set[str] = field(default_factory=set)
 
     def _get_cols_from_data_arg(self) -> list[str]:
-        
         arg = self.data_arg
         if arg.val is None:
             return []
@@ -24,7 +23,7 @@ class FrameInstance:
             dict_node = cast(ast.Dict, arg.val)
             keys_nodes = dict_node.keys
             cols: list[str] = []
-            
+
             for k in keys_nodes:
                 if isinstance(k, ast.Constant) and k.value is not None:
                     cols.append(str(k.value))
@@ -35,7 +34,7 @@ class FrameInstance:
             inner_dict: WrappedNode = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return [str(key.value) for key in keys.val] if keys.val is not None else []
-        
+
         # If wrapped around List
         if isinstance(arg.val, ast.List):
             cols = []
@@ -52,18 +51,18 @@ class FrameInstance:
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
             filter(
-                lambda col: col is not None,
+                None,
                 [col.val if isinstance(col, WrappedNode) else col for col in columns],
             )
         )
 
         self._columns.update(_cols_str)  # type: ignore
-        
+
     def add_column_constant(self, constant_node: WrappedNode[ast.Constant]):
         match constant_node.get("value").val:
             case str(col_name):
                 self.add_columns(col_name)
-    
+
     def add_column_list(self, list_node: WrappedNode[ast.List]):
         for elt_node in list_node:
             match elt_node.val:
@@ -72,7 +71,7 @@ class FrameInstance:
 
     @property
     def columns(self) -> list[str]:
-        return sorted(set(self._get_cols_from_data_arg()).union(self._columns))
+        return sorted(self._columns)
 
 
 @dataclass

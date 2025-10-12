@@ -1,5 +1,8 @@
+import argparse
 import ast
+import glob
 import os
+import sys
 from pathlib import Path
 from typing import Self, cast, override
 
@@ -13,6 +16,8 @@ from frame_check_core._models import (
     FrameInstance,
     LineIdKey,
 )
+
+from frame_check_core._col_similarity import zero_deps_jaro_winkler
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -31,6 +36,10 @@ class FrameChecker(ast.NodeVisitor):
         self.diagnostics: list[Diagnostic] = []
         self._col_assignment_subscripts: set[ast.Subscript] = set()
         self.source = ""
+        self.df_creation_handlers = {
+            "DataFrame": self.new_frame_instance,
+            "read_csv": self.frame_from_read_csv,
+        }
 
     @classmethod
     def check(cls, code: str | ast.Module | Path) -> Self:
@@ -74,7 +83,8 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                message = f"Column '{access.id}' does not exist"
+                # zero-deps implementations of Jaro-Winkler distance (similarity >= 0.9)\
+                message = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
                     data_line += (
@@ -114,7 +124,7 @@ class FrameChecker(ast.NodeVisitor):
         # Check if this is a pandas Frame constructor
         if (
             val.get("id").val in self.import_aliases.values()
-            and func.get("attr").val == "DataFrame"
+            and func.get("attr").val in self.df_creation_handlers
         ):
             return node
 
@@ -130,7 +140,90 @@ class FrameChecker(ast.NodeVisitor):
         else:
             return cast(WrappedNode[ast.List | ast.Dict | None], arg0)
 
-    def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":  # type: ignore[return]
+    def get_cols_from_data_arg(
+        self, data_arg: WrappedNode[ast.Dict | None]
+    ) -> set[str]:
+        arg = data_arg
+        if arg.val is None:
+            return set()
+        if isinstance(arg.val, ast.Dict):
+            keys = arg.get("keys")
+            return (
+                {cast(str, key.value) for key in keys.val}
+                if keys.val is not None
+                else set()
+            )
+
+        # If wrapped around Assign or other, try to get inner Dict
+        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
+            inner_dict = WrappedNode(arg.val.value)
+            keys = inner_dict.get("keys")
+            return {key.value for key in keys.val} if keys.val is not None else set()  # type: ignore
+        return set()
+
+    def handle_df_creation(self, node: ast.Assign) -> FrameInstance | None:
+        """Routes DataFrame creation calls to the appropriate handler."""
+        df_creator = WrappedNode(node.value).get("func").get("attr").val or ""
+        handler = self.df_creation_handlers.get(df_creator)
+        return handler and handler(node)
+
+    def frame_from_read_csv(self, node: ast.Assign) -> FrameInstance | None:
+        """
+        Handle pd.read_csv calls to create FrameInstance.
+        Reads the column list from the 'usecols' keyword argument if present.
+        If not, ignores the DataFrame.
+        """
+        # Basic implementation reads list contents of usecols kwarg iff
+        # This is a list of string constants or a variable assigned to such a list.
+        # TODO: Handle longer assignment chains, including variables within the list
+        n = WrappedNode[ast.Assign](node)
+        call_keywords = n.get("value").get("keywords")
+        usecols_kw: ast.keyword | None = None
+        for kw in call_keywords.val or []:
+            if kw.arg == "usecols":
+                usecols_kw = kw
+                break
+        if usecols_kw is None:
+            return None
+        usecols_value = WrappedNode[ast.List | ast.Name](usecols_kw.value)
+        df_name = n.targets[0].get("id").val
+        assert df_name is not None
+        data_source_lineno = None
+        match usecols_value.val:
+            case ast.List(elts):
+                pass
+            case ast.Name(name):
+                def_node = self.definitions.get(name)
+                if not isinstance(def_node, ast.Assign):
+                    return None
+                if not isinstance(def_node.value, ast.List):
+                    return None
+                data_source_lineno = def_node.lineno
+                elts = def_node.value.elts
+            case _:
+                return None
+        if not all(isinstance(e, ast.Constant) for e in elts):
+            return None
+        elts_const = cast(list[ast.Constant], elts)
+        if all(isinstance(e.value, int) for e in elts_const):
+            # Passing indices not column names
+            return None
+        if all(isinstance(e.value, str) for e in elts_const):
+            columns = cast(list[str], [e.value for e in elts_const])
+        else:
+            return None
+
+        return FrameInstance(
+            node,
+            node.lineno,
+            df_name,
+            WrappedNode(None),
+            [WrappedNode[ast.keyword](kw) for kw in call_keywords.val or []],
+            data_source_lineno=data_source_lineno,
+            _columns=set(columns),
+        )
+
+    def new_frame_instance(self, node: ast.Assign) -> FrameInstance | None:
         n = WrappedNode[ast.Assign](node)
         original_arg = n.get("value").get("args")[0]
         data_arg = self.resolve_args(n.get("value").get("args"))
@@ -158,12 +251,14 @@ class FrameChecker(ast.NodeVisitor):
                     for kw in call_keywords.val  # ty: ignore
                 ],
                 data_source_lineno=data_source_lineno,
+                _columns=self.get_cols_from_data_arg(data_arg),
             )
+        return None
 
     def maybe_assign_df(self, node: ast.Assign) -> bool:
         maybe_df = self.maybe_get_df(node)
         if maybe_df is not None:
-            if frame := self.new_frame_instance(maybe_df):
+            if frame := self.handle_df_creation(maybe_df):
                 self.frames.add(frame)
                 return True
         return False
@@ -186,17 +281,23 @@ class FrameChecker(ast.NodeVisitor):
                         node,
                         node.lineno,
                         last_frame.id,
-                        cast(WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg),
+                        cast(
+                            WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg
+                        ),
                         last_frame.keywords,
+                        _columns=set(last_frame._columns),
                     )
+                    _col = subscript.get("slice").as_type(ast.Constant).get("value")
                     subscript_slice = subscript.get("slice")
-                    
+
                     match subscript_slice.val:
                         case ast.Constant():
-                            new_frame.add_column_constant(subscript_slice.as_type(ast.Constant))
+                            new_frame.add_column_constant(
+                                subscript_slice.as_type(ast.Constant)
+                            )
                         case ast.List():
                             new_frame.add_column_list(subscript_slice.as_type(ast.List))
-                    
+
                     self.frames.add(new_frame)
                     # Store subscript as it is a column assignment
                     self._col_assignment_subscripts.add(target)
@@ -243,12 +344,98 @@ class FrameChecker(ast.NodeVisitor):
             self.generic_visit(node)
 
 
-def main():
-    import sys
+def create_parser() -> argparse.ArgumentParser:
+    """Create and configure the argument parser for frame-check CLI.
 
-    if len(sys.argv) != 2:
-        print("Usage: python -m frame_check_core <file.py>", file=sys.stderr)
-        sys.exit(1)
-    path = sys.argv[1]
-    fc = FrameChecker.check(path)
-    print_diagnostics(fc, path)
+    Returns:
+        Configured ArgumentParser instance.
+    """
+    parser = argparse.ArgumentParser(
+        prog="frame-check",
+        description="A static checker for dataframes!",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "files",
+        type=str,
+        nargs="*",
+        help="Python files, directories, or glob patterns to check. "
+        "If not specified, checks all .py files in current directory.",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s 0.1.0",
+    )
+
+    return parser
+
+
+def collect_python_files(paths: list[str]) -> list[Path]:
+    """Collect all Python files from the given paths.
+
+    Args:
+        paths: List of file paths, directory paths, or glob patterns.
+               If empty, defaults to all .py files in current directory recursively.
+
+    Returns:
+        List of Path objects for Python files to check.
+    """
+    if not paths:
+        # Default: all .py files in current directory and subdirectories (recursive)
+        return sorted(Path.cwd().rglob("*.py"))
+
+    collected_files: set[Path] = set()
+
+    for path_str in paths:
+        path = Path(path_str)
+
+        if path.is_file() and path.suffix == ".py":
+            collected_files.add(path.resolve())
+        elif path.is_dir():
+            # Recursively find all .py files in the directory
+            collected_files.update(path.rglob("*.py"))
+        else:
+            # treat as a glob pattern
+            for matched_path in glob.glob(path_str, recursive=True):
+                matched = Path(matched_path)
+                if matched.is_file() and matched.suffix == ".py":
+                    collected_files.add(matched.resolve())
+
+    return sorted(collected_files)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Main entry point for the CLI."""
+    parser = create_parser()
+    args = parser.parse_args(argv)
+
+    # Collect all Python files to check
+    python_files = collect_python_files(args.files)
+
+    if not python_files:
+        print("No Python files found to check.", file=sys.stderr)
+        return 0
+
+    # Track if any file has diagnostics
+    has_errors = False
+
+    # Process each file
+    for file_path in python_files:
+        try:
+            fc = FrameChecker.check(file_path)
+            if fc.diagnostics:
+                has_errors = True
+                print_diagnostics(fc, str(file_path))
+
+        except SyntaxError as e:
+            print(f"Syntax error in {file_path}:\n{e}", file=sys.stderr)
+            has_errors = True
+        except Exception as e:
+            print(f"Error checking {file_path}:\n{e}", file=sys.stderr)
+            has_errors = True
+
+    return 1 if has_errors else 0
