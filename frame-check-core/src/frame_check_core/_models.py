@@ -36,7 +36,7 @@ class FrameInstance:
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
             filter(
-                lambda col: col is not None,
+                None,
                 [col.val if isinstance(col, WrappedNode) else col for col in columns],
             )
         )
@@ -56,7 +56,7 @@ class FrameInstance:
 
     @property
     def columns(self) -> list[str]:
-        return sorted(set(self._get_cols_from_data_arg()).union(self._columns))
+        return sorted(self._columns)
 
 
 @dataclass
