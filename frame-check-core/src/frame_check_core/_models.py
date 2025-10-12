@@ -32,7 +32,7 @@ class FrameInstance:
 
         # If wrapped around Assign or other, try to get inner Dict
         if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
-            inner_dict = WrappedNode(arg.val.value)
+            inner_dict: WrappedNode = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return [str(key.value) for key in keys.val] if keys.val is not None else []
         
@@ -40,7 +40,7 @@ class FrameInstance:
         if isinstance(arg.val, ast.List):
             cols = []
             for elt in arg.val.elts:
-                wrapped = WrappedNode(elt)
+                wrapped: WrappedNode = WrappedNode(elt)
                 keys = wrapped.get("keys")
                 if keys.val:
                     for k in keys.val:
