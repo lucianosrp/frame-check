@@ -15,6 +15,24 @@ class FrameInstance:
     data_source_lineno: int | None = None
     _columns: set[str] = field(default_factory=set)
 
+    def _get_cols_from_data_arg(self) -> list[str]:
+        arg = self.data_arg
+        if arg.val is None:
+            return []
+        if isinstance(arg.val, ast.Dict):
+            keys = arg.get("keys")
+            return (
+                [cast(str, key.value) for key in keys.val]
+                if keys.val is not None
+                else []
+            )
+        # If wrapped around Assign or other, try to get inner Dict
+        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
+            inner_dict = WrappedNode(arg.val.value)
+            keys = inner_dict.get("keys")
+            return [str(key.value) for key in keys.val] if keys.val is not None else []
+        return []
+
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
             filter(
@@ -24,12 +42,12 @@ class FrameInstance:
         )
 
         self._columns.update(_cols_str)  # type: ignore
-        
+
     def add_column_constant(self, constant_node: WrappedNode[ast.Constant]):
         match constant_node.get("value").val:
             case str(col_name):
                 self.add_columns(col_name)
-    
+
     def add_column_list(self, list_node: WrappedNode[ast.List]):
         for elt_node in list_node:
             match elt_node.val:
