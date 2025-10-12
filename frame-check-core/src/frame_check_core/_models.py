@@ -40,13 +40,12 @@ class FrameInstance:
         if isinstance(arg.val, ast.List):
             cols = []
             for elt in arg.val.elts:
-                if isinstance(elt, ast.Dict):
-                    wrapped = WrappedNode(elt)
-                    keys = wrapped.get("keys")
-                    if keys.val:
-                        for k in keys.val:
-                            if k.value not in cols:
-                                cols.append(str(k.value))
+                wrapped = WrappedNode(elt)
+                keys = wrapped.get("keys")
+                if keys.val:
+                    for k in keys.val:
+                        if k.value not in cols:
+                            cols.append(str(k.value))
             return cols
         return []
 
