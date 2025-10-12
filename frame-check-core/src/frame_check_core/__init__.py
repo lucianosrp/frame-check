@@ -265,18 +265,18 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Assign(self, node: ast.Assign):
-        # Store definitions:
         for target in node.targets:
             if isinstance(target, ast.Name):
+                # Defining a variable
                 self.definitions[target.id] = node
 
             elif isinstance(target, ast.Subscript):
                 subscript = WrappedNode[ast.Subscript](target)
-                subscript_value = subscript.get("value")
-                frames = self.frames.get(subscript_value.get("id"))
-                if frames:
-                    last_frame = frames[-1]
-                    # Create a new frame instance for the column
+                df_name = subscript.get("value").get("id").val
+                df_name = df_name if df_name is not None else ""
+                last_frame = self.frames.get_before(node.lineno, df_name)
+                if last_frame:
+                    # New column assignment to existing DataFrame
                     new_frame = FrameInstance(
                         node,
                         node.lineno,
