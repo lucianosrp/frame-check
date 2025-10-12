@@ -17,6 +17,8 @@ from frame_check_core._models import (
     LineIdKey,
 )
 
+from frame_check_core._col_similarity import zero_deps_jaro_winkler
+
 
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
@@ -81,7 +83,8 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                message = f"Column '{access.id}' does not exist"
+                # zero-deps implementations of Jaro-Winkler distance (similarity >= 0.9)\
+                message = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
                     data_line += (
