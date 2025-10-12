@@ -81,7 +81,9 @@ class FrameChecker(ast.NodeVisitor):
                 message = f"Column '{access.id}' does not exist"
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
-                    data_line += f" from data defined at line {access.frame.data_source_lineno}"
+                    data_line += (
+                        f" from data defined at line {access.frame.data_source_lineno}"
+                    )
                 data_line += " with columns:"
                 hints = [data_line]
                 for col in sorted(access.frame.columns):
@@ -147,16 +149,10 @@ class FrameChecker(ast.NodeVisitor):
             )
 
         # If wrapped around Assign or other, try to get inner Dict
-        if isinstance(arg.val, ast.Assign) and isinstance(
-            arg.val.value, ast.Dict
-        ):
+        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
             inner_dict = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
-            return (
-                {key.value for key in keys.val}
-                if keys.val is not None
-                else set()
-            )  # type: ignore
+            return {key.value for key in keys.val} if keys.val is not None else set()  # type: ignore
         return set()
 
     def handle_df_creation(self, node: ast.Assign) -> FrameInstance | None:
@@ -200,10 +196,7 @@ class FrameChecker(ast.NodeVisitor):
                 elts = def_node.value.elts
             case _:
                 return None
-        if not all(
-            isinstance(e, ast.Constant)
-            for e in elts
-        ):
+        if not all(isinstance(e, ast.Constant) for e in elts):
             return None
         elts = cast(list[ast.Constant], elts)
         if all(isinstance(e.value, int) for e in elts):
@@ -213,16 +206,13 @@ class FrameChecker(ast.NodeVisitor):
             columns = cast(list[str], [e.value for e in elts])
         else:
             return None
-    
+
         return FrameInstance(
             node,
             node.lineno,
             df_name,
             WrappedNode(None),
-            [
-                WrappedNode[ast.keyword](kw)
-                for kw in call_keywords.val or []
-            ],
+            [WrappedNode[ast.keyword](kw) for kw in call_keywords.val or []],
             data_source_lineno=data_source_lineno,
             _columns=set(columns),
         )
@@ -286,13 +276,9 @@ class FrameChecker(ast.NodeVisitor):
                         last_frame.id,
                         last_frame.data_arg,
                         last_frame.keywords,
-                        _columns=set(last_frame._columns)
+                        _columns=set(last_frame._columns),
                     )
-                    col = (
-                        subscript.get("slice")
-                        .as_type(ast.Constant)
-                        .get("value")
-                    )
+                    col = subscript.get("slice").as_type(ast.Constant).get("value")
                     subscript_slice = subscript.get("slice")
 
                     match subscript_slice.val:
@@ -328,24 +314,22 @@ class FrameChecker(ast.NodeVisitor):
             if (
                 frame_id := n.get("value").get("id").val
             ) in self.frames.instance_keys():
-                if isinstance(
-                    const := n.get("slice").val, ast.Constant
-                ) and isinstance(const.value, str):
+                if isinstance(const := n.get("slice").val, ast.Constant) and isinstance(
+                    const.value, str
+                ):
                     frame = self.frames.get_before(node.lineno, frame_id)
                     if frame is not None:
                         start_col = node.value.end_col_offset or 0
-                        underline_length = (
-                            node.end_col_offset or 0
-                        ) - start_col
-                        self.column_accesses[
-                            LineIdKey(node.lineno, const.value)
-                        ] = ColumnInstance(
-                            node,
-                            node.lineno,
-                            const.value,
-                            frame,
-                            start_col,
-                            underline_length,
+                        underline_length = (node.end_col_offset or 0) - start_col
+                        self.column_accesses[LineIdKey(node.lineno, const.value)] = (
+                            ColumnInstance(
+                                node,
+                                node.lineno,
+                                const.value,
+                                frame,
+                                start_col,
+                                underline_length,
+                            )
                         )
 
             self.generic_visit(node)

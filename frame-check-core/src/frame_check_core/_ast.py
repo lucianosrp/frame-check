@@ -131,7 +131,6 @@ class WrappedNode[T: SupportedNode | None]:
         self: "WrappedNode[ast.Constant]", attr: Literal["value"]
     ) -> "WrappedNode[str]": ...
 
-
     @overload
     def get(self: "WrappedNode", attr: Literal["lineno"]) -> "WrappedNode[int]": ...
 
