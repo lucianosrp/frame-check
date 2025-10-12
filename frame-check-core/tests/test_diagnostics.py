@@ -198,7 +198,5 @@ df["EmpolyeeName"]
             ],
             definition_location=(13, 0),
             data_source_location=(5, 0),
-        ),
-        # TODO: we could had a hint that says something like:
-        # NameLower is later defined at line 11
+        )
     ]
