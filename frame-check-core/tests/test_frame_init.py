@@ -31,6 +31,7 @@ df = pd.DataFrame(data)
     assert frame_instance.columns == ["a", "b"]
     assert frame_instance.lineno == 5
 
+
 def test_frame_init_header_as_str_var():
     code = """
 import pandas as pd
