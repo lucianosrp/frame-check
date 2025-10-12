@@ -1,5 +1,7 @@
 import ast
 import os
+import argparse
+import sys
 from pathlib import Path
 from typing import Self, cast, override
 
@@ -243,12 +245,47 @@ class FrameChecker(ast.NodeVisitor):
             self.generic_visit(node)
 
 
-def main():
-    import sys
+def create_parser() -> argparse.ArgumentParser:
+    """Create and configure the argument parser for frame-check CLI.
+    
+    Returns:
+        Configured ArgumentParser instance.
+    """
+    parser = argparse.ArgumentParser(
+        prog="frame-check",
+        description="A static checker for dataframes!",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    
+    parser.add_argument(
+        "file",
+        type=str,
+        help="Python file to check for DataFrame column access issues",
+    )
+    
+    parser.add_argument(
+        "-v", "--version",
+        action="version",
+        version="%(prog)s 0.1.0",
+    )
+    
+    return parser
 
-    if len(sys.argv) != 2:
-        print("Usage: python -m frame_check_core <file.py>", file=sys.stderr)
+def main(argv: list[str] | None = None) -> int:
+    """Main entry point for the CLI."""
+    parser = create_parser()
+    args = parser.parse_args(argv)
+    
+    file_path = Path(args.file)
+        
+    try:
+        fc = FrameChecker.check(file_path)
+        print_diagnostics(fc, args.file)
+        sys.exit(1 if fc.diagnostics else 0)
+        
+    except SyntaxError as e:
+        print(f"Syntax error in {args.file}:\n{e}", file=sys.stderr)
         sys.exit(1)
-    path = sys.argv[1]
-    fc = FrameChecker.check(path)
-    print_diagnostics(fc, path)
+    except Exception as e:
+        print(f"Error checking {args.file}:\n{e}", file=sys.stderr)
+        sys.exit(1)
