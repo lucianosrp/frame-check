@@ -69,12 +69,74 @@ class FrameChecker(ast.NodeVisitor):
         # Generate diagnostics
         checker._generate_diagnostics()
         return checker
+    
+    def jaro_winkler(self, s1, s2):
+        s1, s2 = s1.lower(), s2.lower()
+        if s1 == s2:
+            return 1.0
+
+        len1, len2 = len(s1), len(s2)
+        max_dist = int(max(len1, len2) / 2) - 1
+
+        match = 0
+        hash_s1 = [0] * len1
+        hash_s2 = [0] * len2
+
+        for i in range(len1):
+            for j in range(max(0, i - max_dist), min(len2, i + max_dist + 1)):
+                if s1[i] == s2[j] and hash_s2[j] == 0:
+                    hash_s1[i] = 1
+                    hash_s2[j] = 1
+                    match += 1
+                    break
+
+        if match == 0:
+            return 0.0
+
+        t = 0
+        point = 0
+        for i in range(len1):
+            if hash_s1[i]:
+                while hash_s2[point] == 0:
+                    point += 1
+                if s1[i] != s2[point]:
+                    t += 1
+                point += 1
+        t = t // 2
+
+        jaro = (match / len1 + match / len2 + (match - t) / match) / 3.0
+
+        # Jaro-Winkler adjustment
+        prefix = 0
+        for i in range(min(len1, len2)):
+            if s1[i] == s2[i]:
+                prefix += 1
+            else:
+                break
+        prefix = min(4, prefix)
+
+        return jaro + 0.1 * prefix * (1 - jaro)
+        
+    def zero_deps_jaro_winkler(self, target_col, existing_cols):
+        jw_distances_dict = {
+            col: abs(self.jaro_winkler(target_col, col))
+            for col in existing_cols
+        }
+        
+        target_value = max(jw_distances_dict.values())
+        if target_value > 0.9:
+            index = list(jw_distances_dict.values()).index(target_value)
+            result = list(jw_distances_dict.keys())[index]
+            return f"Column '{target_col}' does not exist, did you mean '{result}'?"
+        else:
+            return f"Column '{target_col}' does not exist"
 
     def _generate_diagnostics(self):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                message = f"Column '{access.id}' does not exist"
+                # zero-deps implementations of Jaro-Winkler distance (similarity >= 0.9)\
+                message = self.zero_deps_jaro_winkler(access.id, access.frame.columns)
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
                     data_line += (
