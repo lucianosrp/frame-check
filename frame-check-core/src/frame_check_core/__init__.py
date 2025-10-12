@@ -18,6 +18,13 @@ from frame_check_core._models import (
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases: dict[str, str] = {}
+        """
+        This dictionary maps imported module names to their aliases.
+        Example: {'pandas': 'pd'}
+        If pandas is imported without an alias, like `import pandas`,
+        then it will be {'pandas': 'pandas'}
+        """
+
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, ast.AST] = {}
