@@ -1,7 +1,7 @@
 import ast
 import os
 from pathlib import Path
-from typing import Self, cast
+from typing import Self, cast, override
 
 from frame_check_core._ast import WrappedNode
 from frame_check_core._message import print_diagnostics
@@ -18,6 +18,13 @@ from frame_check_core._models import (
 class FrameChecker(ast.NodeVisitor):
     def __init__(self):
         self.import_aliases: dict[str, str] = {}
+        """
+        This dictionary maps imported module names to their aliases.
+        Example: {'pandas': 'pd'}
+        If pandas is imported without an alias, like `import pandas`,
+        then it will be {'pandas': 'pandas'}
+        """
+
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, ast.AST] = {}
@@ -259,6 +266,7 @@ class FrameChecker(ast.NodeVisitor):
                 return True
         return False
 
+    @override
     def visit_Assign(self, node: ast.Assign):
         # Store definitions:
         for target in node.targets:
@@ -285,7 +293,14 @@ class FrameChecker(ast.NodeVisitor):
                         .as_type(ast.Constant)
                         .get("value")
                     )
-                    new_frame.add_columns(col)
+                    subscript_slice = subscript.get("slice")
+                    
+                    match subscript_slice.val:
+                        case ast.Constant():
+                            new_frame.add_column_constant(subscript_slice.as_type(ast.Constant))
+                        case ast.List():
+                            new_frame.add_column_list(subscript_slice.as_type(ast.List))
+                    
                     self.frames.add(new_frame)
                     # Store subscript as it is a column assignment
                     self._col_assignment_subscripts.add(target)
@@ -293,6 +308,7 @@ class FrameChecker(ast.NodeVisitor):
         self.maybe_assign_df(node)
         self.generic_visit(node)
 
+    @override
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "pandas":
@@ -301,6 +317,7 @@ class FrameChecker(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    @override
     def visit_Subscript(self, node: ast.Subscript):
         if (  # ignore subscript if it is a column assignment
             node not in self._col_assignment_subscripts
