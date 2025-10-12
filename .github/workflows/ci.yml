@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --dev
 
+      - name: Install ruff
+        run: uv tool install ruff
+
       - name: Run frame-check-core tests
         run: uv run --directory frame-check-core pytest -v
 
