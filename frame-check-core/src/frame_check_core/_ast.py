@@ -19,6 +19,7 @@ SupportedNode = (
     | ast.Compare
     | list[ast.Name | ast.Dict]
     | int
+    | ast.List
 )
 
 
@@ -123,7 +124,7 @@ class WrappedNode[T: SupportedNode | None]:
     @overload
     def get(
         self: "WrappedNode[ast.Subscript]", attr: Literal["slice"]
-    ) -> "WrappedNode[ast.Constant | ast.Compare]": ...
+    ) -> "WrappedNode[ast.Constant | ast.Compare | ast.List]": ...
 
     @overload
     def get(
@@ -159,6 +160,13 @@ class WrappedNode[T: SupportedNode | None]:
         if isinstance(self.val, list) and 0 <= index < len(self.val):
             return WrappedNode(self.val[index])
         return WrappedNode(None)
+    
+    def __iter__(self):
+        if isinstance(self.val, ast.List):
+            for item in self.val.elts:
+                yield WrappedNode(item)
+        else:
+            return
 
     @property
     def targets(self):
