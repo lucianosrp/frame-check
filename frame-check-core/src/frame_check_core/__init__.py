@@ -1,8 +1,8 @@
-import ast
-import os
 import argparse
-import sys
+import ast
 import glob
+import os
+import sys
 from pathlib import Path
 from typing import Self, cast, override
 
@@ -281,7 +281,7 @@ class FrameChecker(ast.NodeVisitor):
                         last_frame.keywords,
                         _columns=set(last_frame._columns),
                     )
-                    col = subscript.get("slice").as_type(ast.Constant).get("value")
+                    _col = subscript.get("slice").as_type(ast.Constant).get("value")
                     subscript_slice = subscript.get("slice")
 
                     match subscript_slice.val:
