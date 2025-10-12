@@ -188,3 +188,6 @@ if __name__ == "__main__":
     test_dataframe_operations()
 
     print("Test file execution complete!")
+
+# Exclude from pytest collection
+__test__ = False
