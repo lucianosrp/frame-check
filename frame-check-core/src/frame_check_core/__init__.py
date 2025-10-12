@@ -122,13 +122,13 @@ class FrameChecker(ast.NodeVisitor):
 
     def resolve_args(
         self, args: WrappedNode[list[ast.Name | ast.Dict]]
-    ) -> WrappedNode[ast.Dict | None]:
+    ) -> WrappedNode[ast.List | ast.Dict | None]:
         arg0 = args[0]
         if isinstance(arg0_val := arg0.val, ast.Name):
             def_node = self.definitions.get(arg0_val.id)
             return WrappedNode(def_node)
         else:
-            return cast(WrappedNode[ast.Dict | None], arg0)
+            return cast(WrappedNode[ast.List | ast.Dict | None], arg0)
 
     def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":  # type: ignore[return]
         n = WrappedNode[ast.Assign](node)
@@ -152,7 +152,7 @@ class FrameChecker(ast.NodeVisitor):
                 node,
                 node.lineno,
                 name.val,
-                data_arg,
+                cast(WrappedNode[ast.List | ast.Dict | None], data_arg),
                 [
                     WrappedNode[ast.keyword](kw)
                     for kw in call_keywords.val  # ty: ignore
@@ -186,7 +186,7 @@ class FrameChecker(ast.NodeVisitor):
                         node,
                         node.lineno,
                         last_frame.id,
-                        last_frame.data_arg,
+                        cast(WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg),
                         last_frame.keywords,
                     )
                     subscript_slice = subscript.get("slice")

@@ -10,27 +10,44 @@ class FrameInstance:
     _node: ast.Assign
     lineno: int
     id: str
-    data_arg: WrappedNode[ast.Dict | None]
+    data_arg: WrappedNode[ast.List | ast.Dict | None]
     keywords: list[WrappedNode[ast.keyword]]
     data_source_lineno: int | None = None
     _columns: set[str] = field(default_factory=set)
 
     def _get_cols_from_data_arg(self) -> list[str]:
+        
         arg = self.data_arg
         if arg.val is None:
             return []
         if isinstance(arg.val, ast.Dict):
-            keys = arg.get("keys")
-            return (
-                [cast(str, key.value) for key in keys.val]
-                if keys.val is not None
-                else []
-            )
+            dict_node = cast(ast.Dict, arg.val)
+            keys_nodes = dict_node.keys
+            cols: list[str] = []
+            
+            for k in keys_nodes:
+                if isinstance(k, ast.Constant) and k.value is not None:
+                    cols.append(str(k.value))
+            return cols
+
         # If wrapped around Assign or other, try to get inner Dict
         if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
             inner_dict = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
-            return [key.value for key in keys.val] if keys.val is not None else []
+            return [str(key.value) for key in keys.val] if keys.val is not None else []
+        
+        # If wrapped around List
+        if isinstance(arg.val, ast.List):
+            cols = []
+            for elt in arg.val.elts:
+                if isinstance(elt, ast.Dict):
+                    wrapped = WrappedNode(elt)
+                    keys = wrapped.get("keys")
+                    if keys.val:
+                        for k in keys.val:
+                            if k.value not in cols:
+                                cols.append(str(k.value))
+            return cols
         return []
 
     def add_columns(self, *columns: str | WrappedNode[str]):
