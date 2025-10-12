@@ -47,6 +47,13 @@ jobs:
         run: uv sync --locked --dev
       - name: mypy check
         run: uv run mypy . --check-untyped-defs
+
+      - name: Ruff Check
+        run: ruff check --output-format=github .
+
+      - name: Ruff Format
+        run: ruff format --diff
+
       - name: Run the benchmarks
         if: ${{ !contains(github.event.head_commit.message, '[skip-bench]') }}
         uses: CodSpeedHQ/action@v4
@@ -54,3 +61,13 @@ jobs:
           mode: instrumentation
           run: uv run pytest --codspeed
           token: ${{ secrets.CODSPEED_TOKEN }}
+
+  pre-commit-ci:
+    name: Pre-commit CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
