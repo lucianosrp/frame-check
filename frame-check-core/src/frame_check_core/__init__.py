@@ -354,13 +354,14 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
         if isinstance(node.func, ast.Attribute):
+            frame_id = None
             columns = None
             match node.func.value:
                 case ast.Name():
                     frame_id = node.func.value.id
                     frame = self.frames.get_before(node.lineno, frame_id)
                     if frame is not None:
-                        columns = frame.columns
+                        columns = set(frame.columns)
                 case ast.Call():
                     if hasattr(node.func.value, RESULT_COLS):
                         columns = getattr(node.func.value, RESULT_COLS)
@@ -380,7 +381,7 @@ class FrameChecker(ast.NodeVisitor):
                 self.column_accesses[LineIdKey(node.lineno, "")] = error
             if returned is not None:
                 setattr(node, RESULT_COLS, returned)
-            if updated != columns:
+            if updated != columns and frame_id is not None:
                 new_frame = FrameInstance(
                     node,
                     node.lineno,

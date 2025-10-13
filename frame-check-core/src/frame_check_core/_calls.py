@@ -22,13 +22,14 @@ def _parse_str_args(
     args_value: list[str | None] = []
     keywords_value: dict[str, Any] = {}
     for arg_node in args:
-        arg_value = _maybe_constant_str(arg_node)
-        args_value.append(arg_value)
+        if isinstance(arg_node, ast.Constant) and isinstance(arg_node.value, str):
+            args_value.append(arg_node.value)
+        else:
+            args_value.append(None)
     for keyword_node in keywords:
-        if keyword_node.arg is not None:
-            keyword_arg = _maybe_constant_str(keyword_node)
-            if keyword_arg is not None:
-                keywords_value[keyword_arg] = keyword_arg
+        if isinstance(keyword_node.arg, str):
+            keyword_value = _maybe_constant_str(keyword_node.value)
+            keywords_value[keyword_node.arg] = keyword_value
     return args_value, keywords_value
 
 
