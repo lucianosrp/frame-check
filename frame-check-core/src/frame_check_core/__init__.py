@@ -296,7 +296,6 @@ class FrameChecker(ast.NodeVisitor):
                     _col = subscript.get("slice").as_type(ast.Constant).get("value")
                     subscript_slice = subscript.get("slice")
 
-
                     match subscript_slice.val:
                         case ast.Constant():
                             new_frame.add_column_constant(
@@ -307,7 +306,6 @@ class FrameChecker(ast.NodeVisitor):
                             )
                         case ast.List():
                             new_frame.add_column_list(subscript_slice.as_type(ast.List))
-
 
                     self.frames.add(new_frame)
 
