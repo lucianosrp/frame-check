@@ -160,7 +160,7 @@ class WrappedNode[T: SupportedNode | None]:
         if isinstance(self.val, list) and 0 <= index < len(self.val):
             return WrappedNode(self.val[index])
         return WrappedNode(None)
-    
+
     def __iter__(self):
         if isinstance(self.val, ast.List):
             for item in self.val.elts:
