@@ -7,7 +7,7 @@ from frame_check_core._ast import WrappedNode
 
 @dataclass
 class FrameInstance:
-    _node: ast.Assign
+    _node: ast.Assign | ast.Call
     lineno: int
     id: str
     data_arg: WrappedNode[ast.Dict | None]
@@ -42,12 +42,12 @@ class FrameInstance:
         )
 
         self._columns.update(_cols_str)  # type: ignore
-        
+
     def add_column_constant(self, constant_node: WrappedNode[ast.Constant]):
         match constant_node.get("value").val:
             case str(col_name):
                 self.add_columns(col_name)
-    
+
     def add_column_list(self, list_node: WrappedNode[ast.List]):
         for elt_node in list_node:
             match elt_node.val:
