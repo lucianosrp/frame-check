@@ -3,7 +3,7 @@ import contextlib
 import logging
 import sys
 
-from frame_chck_core import FrameChecker
+from frame_check_core import FrameChecker
 from frame_check_core._models import Diagnostic
 from lsprotocol import types
 from pygls.cli import start_server
@@ -12,6 +12,7 @@ from pygls.lsp.server import LanguageServer
 server = LanguageServer("frame-check-lsp", "v0.1")
 fc = FrameChecker()
 logger = logging.getLogger(__name__)
+
 
 async def _get_code_action(diagnostic: Diagnostic, uri: str) -> types.CodeAction:
     assert diagnostic.name_suggestion, "No name suggestion available"
@@ -32,6 +33,7 @@ async def _get_code_action(diagnostic: Diagnostic, uri: str) -> types.CodeAction
         kind=types.CodeActionKind.QuickFix,
         edit=types.WorkspaceEdit(changes={uri: [text_edit]}),
     )
+
 
 # Somehow this doesn't work (?)
 # FIXME
