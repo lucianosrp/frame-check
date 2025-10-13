@@ -1,4 +1,5 @@
 import functools
+from typing import NamedTuple
 
 
 @functools.cache
@@ -50,7 +51,12 @@ def jaro_winkler(s1, s2):
     return jaro + 0.1 * prefix * (1 - jaro)
 
 
-def zero_deps_jaro_winkler(target_col, existing_cols):
+class JaroWinklerResult(NamedTuple):
+    message: str
+    result: str | None
+
+
+def zero_deps_jaro_winkler(target_col, existing_cols) -> JaroWinklerResult:
     jw_distances_dict = {
         col: abs(jaro_winkler(target_col, col)) for col in existing_cols
     }
@@ -59,6 +65,8 @@ def zero_deps_jaro_winkler(target_col, existing_cols):
     if target_value > 0.9:
         index = list(jw_distances_dict.values()).index(target_value)
         result = list(jw_distances_dict.keys())[index]
-        return f"Column '{target_col}' does not exist, did you mean '{result}'?"
+        return JaroWinklerResult(
+            f"Column '{target_col}' does not exist, did you mean '{result}'?", result
+        )
     else:
-        return f"Column '{target_col}' does not exist"
+        return JaroWinklerResult(f"Column '{target_col}' does not exist", None)

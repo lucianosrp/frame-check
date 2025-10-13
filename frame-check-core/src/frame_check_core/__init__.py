@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Self, cast, override
 
 from frame_check_core._ast import WrappedNode
+from frame_check_core._col_similarity import zero_deps_jaro_winkler
 from frame_check_core._message import print_diagnostics
 from frame_check_core._models import (
     ColumnHistory,
@@ -16,8 +17,6 @@ from frame_check_core._models import (
     FrameInstance,
     LineIdKey,
 )
-
-from frame_check_core._col_similarity import zero_deps_jaro_winkler
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -84,7 +83,9 @@ class FrameChecker(ast.NodeVisitor):
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
                 # zero-deps implementations of Jaro-Winkler distance (similarity >= 0.9)\
-                message = zero_deps_jaro_winkler(access.id, access.frame.columns)
+                message, result = zero_deps_jaro_winkler(
+                    access.id, access.frame.columns
+                )
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
                     data_line += (
@@ -110,6 +111,7 @@ class FrameChecker(ast.NodeVisitor):
                     hint=hints,
                     definition_location=definition_location,
                     data_source_location=data_source_location,
+                    name_suggestion=result,
                 )
                 self.diagnostics.append(diagnostic)
 

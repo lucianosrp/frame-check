@@ -187,6 +187,7 @@ df["EmpolyeeName"]
         Diagnostic(
             column_name="EmpolyeeName",
             message="Column 'EmpolyeeName' does not exist, did you mean 'employee_name'?",
+            name_suggestion="employee_name",
             severity="error",
             location=(15, 2),
             underline_length=16,
