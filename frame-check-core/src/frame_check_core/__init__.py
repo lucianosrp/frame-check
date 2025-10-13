@@ -276,15 +276,16 @@ class FrameChecker(ast.NodeVisitor):
 
         for target in node.targets:
             if isinstance(target, ast.Name):
+                # Defining a variable
                 self.definitions[target.id] = node
 
             elif isinstance(target, ast.Subscript):
                 subscript = WrappedNode[ast.Subscript](target)
-                subscript_value = subscript.get("value")
-                frames = self.frames.get(subscript_value.get("id"))
-                if frames:
-                    last_frame = frames[-1]
-                    # Create a new frame instance for the column
+                df_name = subscript.get("value").get("id").val
+                df_name = df_name if df_name is not None else ""
+                last_frame = self.frames.get_before(node.lineno, df_name)
+                if last_frame:
+                    # New column assignment to existing DataFrame
                     new_frame = FrameInstance(
                         node,
                         node.lineno,
@@ -328,24 +329,35 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         n = WrappedNode[ast.Subscript](node)
-        if (frame_id := n.get("value").get("id").val) in self.frames.instance_keys():
-            if isinstance(const := n.get("slice").val, ast.Constant) and isinstance(
-                const.value, str
-            ):
-                frame = self.frames.get_before(node.lineno, frame_id)
-                if frame is not None:
-                    start_col = node.value.end_col_offset or 0
-                    underline_length = (node.end_col_offset or 0) - start_col
-                    self.column_accesses[LineIdKey(node.lineno, const.value)] = (
-                        ColumnInstance(
-                            node,
-                            node.lineno,
-                            const.value,
-                            frame,
-                            start_col,
-                            underline_length,
-                        )
-                    )
+        frame_id = n.get("value").get("id").val
+        if frame_id not in self.frames.instance_keys():
+            # not a dataframe
+            self.generic_visit(node)
+            return
+
+        if not isinstance(const := n.get("slice").val, ast.Constant) or not isinstance(
+            const.value, str
+        ):
+            # not a constant string column access
+            self.generic_visit(node)
+            return
+
+        # referencing a column by string constant
+        frame = self.frames.get_before(node.lineno, frame_id)
+        if frame is not None:
+            start_col = node.value.end_col_offset or 0
+            underline_length = (node.end_col_offset or 0) - start_col
+            # record this column access
+            self.column_accesses[LineIdKey(node.lineno, const.value)] = ColumnInstance(
+                node,
+                node.lineno,
+                const.value,
+                frame,
+                start_col,
+                underline_length,
+            )
+
+        self.generic_visit(node)
 
     @override
     def visit_Call(self, node: ast.Call):
