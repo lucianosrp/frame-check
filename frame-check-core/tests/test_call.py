@@ -11,6 +11,8 @@ df.insert(0, "A", [1, 2, 3])
 df["A"]
 """
     fc = FrameChecker.check(code)
+    df = fc.frames.get("df")[-1]
+    assert df.columns == ["A"]
     assert len(fc.diagnostics) == 0
 
 
@@ -23,6 +25,8 @@ df = df.assign(A=[1, 2, 3])
 df["A"]
 """
     fc = FrameChecker.check(code)
+    df = fc.frames.get("df")[-1]
+    assert df.columns == ["A"]
     assert len(fc.diagnostics) == 0
 
 
@@ -47,4 +51,6 @@ df["A"]
 df["B"]
 """
     fc = FrameChecker.check(code)
+    df = fc.frames.get("df")[-1]
+    assert df.columns == ["A", "B"]
     assert len(fc.diagnostics) == 0
