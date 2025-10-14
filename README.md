@@ -117,7 +117,9 @@ git clone https://github.com/lucianosrp/frame-check.git
 ### Create an environment
 
 ```
-cd frame-check && uv sync
+cd frame-check
+uv sync
+pre-commit install
 ```
 Each component should then have a README.md file with instructions on how to run it.
 
