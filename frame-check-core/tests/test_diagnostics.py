@@ -1,4 +1,4 @@
-from frame_check_core import Diagnostic, FrameChecker
+from frame_check_core.frame_checker import Diagnostic, FrameChecker
 
 
 def test_diagnostics_data():

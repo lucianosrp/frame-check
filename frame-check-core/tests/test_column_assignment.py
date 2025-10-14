@@ -1,4 +1,4 @@
-from frame_check_core import FrameChecker
+from frame_check_core.frame_checker import FrameChecker
 
 
 def test_direct_column_assignment():

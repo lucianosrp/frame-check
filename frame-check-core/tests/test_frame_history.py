@@ -1,6 +1,6 @@
 import pytest
 
-from frame_check_core import FrameChecker, LineIdKey
+from frame_check_core.frame_checker import FrameChecker, LineIdKey
 
 
 def test_simple_frame_history():

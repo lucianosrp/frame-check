@@ -55,7 +55,9 @@ def zero_deps_jaro_winkler(target_col, existing_cols):
         col: abs(jaro_winkler(target_col, col)) for col in existing_cols
     }
 
-    target_value = max(jw_distances_dict.values())
+    target_value = max(
+        jw_distances_dict.values()
+    )  # FIXME: this raises an error if empty
     if target_value > 0.9:
         index = list(jw_distances_dict.values()).index(target_value)
         result = list(jw_distances_dict.keys())[index]

@@ -1,4 +1,4 @@
-from frame_check_core import FrameChecker
+from frame_check_core.frame_checker import FrameChecker
 from pathlib import Path
 
 CSV_TEST_FILE = Path(__file__) / "data" / "csv_file.csv"

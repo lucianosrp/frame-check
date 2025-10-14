@@ -2,7 +2,7 @@ import ast
 from dataclasses import dataclass, field
 from typing import NamedTuple, cast
 
-from frame_check_core._ast import WrappedNode
+from ..ast.wrapped_node import WrappedNode
 
 
 @dataclass
@@ -72,18 +72,6 @@ class ColumnInstance:
 class LineIdKey(NamedTuple):
     lineno: int
     id: str
-
-
-@dataclass
-class Diagnostic:
-    column_name: str
-    message: str
-    severity: str
-    location: tuple[int, int]
-    underline_length: int = 0
-    hint: list[str] | None = None
-    definition_location: tuple[int, int] | None = None
-    data_source_location: tuple[int, int] | None = None
 
 
 @dataclass
