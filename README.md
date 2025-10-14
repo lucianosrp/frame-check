@@ -119,7 +119,7 @@ git clone https://github.com/lucianosrp/frame-check.git
 ```
 cd frame-check
 uv sync
-pre-commit install
+uv run pre-commit install
 ```
 Each component should then have a README.md file with instructions on how to run it.
 
