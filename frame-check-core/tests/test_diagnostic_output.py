@@ -21,7 +21,7 @@ df["NonExistentColumn"]
     checker = FrameChecker.check(code)
     assert len(checker.diagnostics) == 1
     diag = checker.diagnostics[0]
-    assert diag.message == "Column 'NonExistentColumn' does not exist"
+    assert diag.message == "Column 'NonExistentColumn' does not exist."
     assert diag.severity == "error"
     assert diag.location == (12, 2)
     assert diag.underline_length == 21
@@ -41,7 +41,7 @@ df["NonExistentColumn"]
 
     # Read captured output
     captured = capfd.readouterr()
-    expected_output = f"""example.py:12:3 - error: Column 'NonExistentColumn' does not exist
+    expected_output = f"""example.py:12:3 - error: Column 'NonExistentColumn' does not exist.
   |
 12|df["NonExistentColumn"]
   |  {"^" * 21}
