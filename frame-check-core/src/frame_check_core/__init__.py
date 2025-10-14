@@ -4,10 +4,11 @@ import glob
 import os
 import sys
 from pathlib import Path
-from typing import Self, Callable, cast, override
+from typing import Callable, Self, cast, override
 
 from frame_check_core._ast import WrappedNode
 from frame_check_core._calls import DF, CallResult
+from frame_check_core._col_similarity import zero_deps_jaro_winkler
 from frame_check_core._message import print_diagnostics
 from frame_check_core._models import (
     ColumnHistory,
@@ -17,8 +18,6 @@ from frame_check_core._models import (
     FrameInstance,
     LineIdKey,
 )
-
-from frame_check_core._col_similarity import zero_deps_jaro_winkler
 
 ASSIGNING = "_frame_checker_assigning"
 RESULT_COLS = "_frame_checker_result_columns"
@@ -87,7 +86,6 @@ class FrameChecker(ast.NodeVisitor):
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
                 # zero-deps implementations of Jaro-Winkler distance (similarity >= 0.9)\
-                message = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
                 if access.frame.data_source_lineno is not None:
                     data_line += (
@@ -103,6 +101,12 @@ class FrameChecker(ast.NodeVisitor):
                     if access.frame.data_source_lineno is not None
                     else None
                 )
+                message = f"Column '{access.id}' does not exist"
+                similar_col = zero_deps_jaro_winkler(access.id, access.frame.columns)
+                if similar_col:
+                    message += f", did you mean '{similar_col}'?"
+                else:
+                    message += "."
 
                 diagnostic = Diagnostic(
                     column_name=access.id,

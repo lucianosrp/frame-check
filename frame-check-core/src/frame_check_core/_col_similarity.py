@@ -1,8 +1,8 @@
-import functools
+from functools import cache
 
 
-@functools.cache
-def jaro_winkler(s1, s2):
+@cache
+def jaro_winkler(s1: str, s2: str) -> float:
     s1, s2 = s1.lower(), s2.lower()
     if s1 == s2:
         return 1.0
@@ -50,7 +50,10 @@ def jaro_winkler(s1, s2):
     return jaro + 0.1 * prefix * (1 - jaro)
 
 
-def zero_deps_jaro_winkler(target_col, existing_cols):
+def zero_deps_jaro_winkler(target_col: str, existing_cols: list[str]) -> str | None:
+    if not existing_cols:
+        return None
+
     jw_distances_dict = {
         col: abs(jaro_winkler(target_col, col)) for col in existing_cols
     }
@@ -59,6 +62,6 @@ def zero_deps_jaro_winkler(target_col, existing_cols):
     if target_value > 0.9:
         index = list(jw_distances_dict.values()).index(target_value)
         result = list(jw_distances_dict.keys())[index]
-        return f"Column '{target_col}' does not exist, did you mean '{result}'?"
+        return result
     else:
-        return f"Column '{target_col}' does not exist"
+        return None
