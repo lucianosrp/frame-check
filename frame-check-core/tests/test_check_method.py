@@ -68,7 +68,7 @@ result = df['Z']
     checker = FrameChecker.check(test_file)
     assert len(checker.column_accesses) == 1
     assert checker.column_accesses.contains_id("Z")
-    
+
     mock_fd = MagicMock()
     mock_fd.__enter__().read.return_value = code
     # Ensure the correct branch is taken
@@ -79,7 +79,7 @@ result = df['Z']
         checker = FrameChecker.check(test_file)
         # Ensure both the AST parse method and file open method are called
         mock_ast_parse.assert_called_once_with(code)
-        mock_open.assert_called_once_with(str(test_file), 'r')
+        mock_open.assert_called_once_with(str(test_file), "r")
         mock_fd.__enter__().read.assert_called_once()
 
 
