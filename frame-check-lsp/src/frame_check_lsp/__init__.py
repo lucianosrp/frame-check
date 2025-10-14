@@ -46,6 +46,7 @@ async def code_actions(params: types.CodeActionParams):
     for diagnostic in fc.diagnostics:
         if diagnostic.name_suggestion is not None:
             items.append(await _get_code_action(diagnostic, params.text_document.uri))
+    return items
 
 
 @server.feature(types.TEXT_DOCUMENT_DID_CHANGE)
