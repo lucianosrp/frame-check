@@ -52,7 +52,8 @@ def jaro_winkler(s1: str, s2: str) -> float:
 
 def zero_deps_jaro_winkler(target_col: str, existing_cols: list[str]) -> str | None:
     if not existing_cols:
-        return
+        return None
+
     jw_distances_dict = {
         col: abs(jaro_winkler(target_col, col)) for col in existing_cols
     }
@@ -62,3 +63,5 @@ def zero_deps_jaro_winkler(target_col: str, existing_cols: list[str]) -> str | N
         index = list(jw_distances_dict.values()).index(target_value)
         result = list(jw_distances_dict.keys())[index]
         return result
+    else:
+        return None
