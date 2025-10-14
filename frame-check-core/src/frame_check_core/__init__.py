@@ -4,10 +4,11 @@ import glob
 import os
 import sys
 from pathlib import Path
-from typing import Self, cast, override
+from typing import Self, Callable, cast, override
 
 from frame_check_core._ast import WrappedNode
 from frame_check_core._col_similarity import zero_deps_jaro_winkler
+from frame_check_core._calls import DF, CallResult
 from frame_check_core._message import print_diagnostics
 from frame_check_core._models import (
     ColumnHistory,
@@ -17,6 +18,11 @@ from frame_check_core._models import (
     FrameInstance,
     LineIdKey,
 )
+
+from frame_check_core._col_similarity import zero_deps_jaro_winkler
+
+ASSIGNING = "_frame_checker_assigning"
+RESULT_COLS = "_frame_checker_result_columns"
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -33,7 +39,6 @@ class FrameChecker(ast.NodeVisitor):
         self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, ast.AST] = {}
         self.diagnostics: list[Diagnostic] = []
-        self._col_assignment_subscripts: set[ast.Subscript] = set()
         self.source = ""
         self.df_creation_handlers = {
             "DataFrame": self.new_frame_instance,
@@ -268,6 +273,12 @@ class FrameChecker(ast.NodeVisitor):
     @override
     def visit_Assign(self, node: ast.Assign):
         for target in node.targets:
+            if isinstance(target, ast.Subscript):
+                setattr(target, ASSIGNING, True)
+
+        self.generic_visit(node)
+
+        for target in node.targets:
             if isinstance(target, ast.Name):
                 # Defining a variable
                 self.definitions[target.id] = node
@@ -295,30 +306,30 @@ class FrameChecker(ast.NodeVisitor):
                             new_frame.add_column_constant(
                                 subscript_slice.as_type(ast.Constant)
                             )
+                            new_frame.add_column_constant(
+                                subscript_slice.as_type(ast.Constant)
+                            )
                         case ast.List():
                             new_frame.add_column_list(subscript_slice.as_type(ast.List))
 
                     self.frames.add(new_frame)
-                    # Store subscript as it is a column assignment
-                    self._col_assignment_subscripts.add(target)
 
         self.maybe_assign_df(node)
-        self.generic_visit(node)
 
     @override
     def visit_Import(self, node: ast.Import):
+        self.generic_visit(node)
         for alias in node.names:
             if alias.name == "pandas":
                 # Use asname if available, otherwise use the module name
                 self.import_aliases["pandas"] = alias.asname or alias.name
 
-        self.generic_visit(node)
-
     @override
     def visit_Subscript(self, node: ast.Subscript):
-        if node in self._col_assignment_subscripts:
-            # ignore column assignments
-            self.generic_visit(node)
+        self.generic_visit(node)
+
+        # ignore subscript if it is a column assignment
+        if getattr(node, ASSIGNING, False):
             return
 
         n = WrappedNode[ast.Subscript](node)
@@ -351,6 +362,50 @@ class FrameChecker(ast.NodeVisitor):
             )
 
         self.generic_visit(node)
+
+    @override
+    def visit_Call(self, node: ast.Call):
+        self.generic_visit(node)
+
+        if isinstance(node.func, ast.Attribute):
+            frame_id = None
+            columns = None
+            match node.func.value:
+                case ast.Name():
+                    frame_id = node.func.value.id
+                    frame = self.frames.get_before(node.lineno, frame_id)
+                    if frame is not None:
+                        columns = set(frame.columns)
+                case ast.Call():
+                    if hasattr(node.func.value, RESULT_COLS):
+                        columns = getattr(node.func.value, RESULT_COLS)
+
+            if columns is None:
+                return
+
+            dfc = DF(columns)
+            method: Callable[..., CallResult] | None = getattr(
+                dfc, node.func.attr, None
+            )
+            if not callable(method):
+                return
+
+            updated, returned, error = method(node.args, node.keywords)
+            if error is not None:
+                self.column_accesses[LineIdKey(node.lineno, "")] = error
+            if returned is not None:
+                setattr(node, RESULT_COLS, returned)
+            if updated != columns and frame_id is not None:
+                new_frame = FrameInstance(
+                    node,
+                    node.lineno,
+                    frame_id,
+                    WrappedNode(None),
+                    [],
+                    None,
+                    updated,
+                )
+                self.frames.add(new_frame)
 
 
 def create_parser() -> argparse.ArgumentParser:
