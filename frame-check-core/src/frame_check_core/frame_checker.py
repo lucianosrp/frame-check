@@ -23,7 +23,7 @@ from .models.diagnostic import Diagnostic
 
 
 class FrameChecker(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self) -> None:
         self.import_aliases: dict[str, str] = {}
         """
         This dictionary maps imported module names to their aliases.
