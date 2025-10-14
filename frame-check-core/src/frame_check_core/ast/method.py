@@ -44,7 +44,7 @@ class DFMethod:
     @classmethod
     def get_method(cls, columns: DFColumns, method_name: str) -> "DFMethod | None":
         if method_name in cls.method_registry:
-            return DFMethod(columns, cls.method_registry[method_name])
+            return DFMethod(columns.copy(), cls.method_registry[method_name])
         return None
 
 

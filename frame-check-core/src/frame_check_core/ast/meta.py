@@ -2,7 +2,7 @@ import ast
 
 from .method import DFColumns, DFMethod
 
-RESULT = DFColumns | DFMethod
+Result = DFColumns | DFMethod
 
 _ASSIGNING_ATTR = "_frame_checker_assigning"
 _RESULT_ATTR = "_frame_checker_result_columns"
@@ -16,9 +16,9 @@ def set_assigning(node: ast.Subscript) -> None:
     setattr(node, _ASSIGNING_ATTR, True)
 
 
-def get_result(node: ast.AST) -> RESULT | None:
+def get_result(node: ast.AST) -> Result | None:
     return getattr(node, _RESULT_ATTR, None)
 
 
-def set_result(node: ast.AST, result: RESULT) -> None:
+def set_result(node: ast.AST, result: Result) -> None:
     setattr(node, _RESULT_ATTR, result)
