@@ -7,7 +7,7 @@ from frame_check_core._ast import WrappedNode
 
 @dataclass
 class FrameInstance:
-    _node: ast.Assign
+    _node: ast.Assign | ast.Call
     lineno: int
     id: str
     data_arg: WrappedNode[ast.Dict | None]
