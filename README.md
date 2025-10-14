@@ -125,5 +125,5 @@ Each component should then have a README.md file with instructions on how to run
 
  ---
 
- Born at PyconHK 2025
+ Born at [PyconHK 2025](https://pycon.hk/)
  ![](https://pycon.hk/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo.ebd84d16.png&w=256&q=75)
