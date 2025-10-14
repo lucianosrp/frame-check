@@ -19,7 +19,6 @@ from frame_check_core._models import (
     LineIdKey,
 )
 
-from frame_check_core._col_similarity import zero_deps_jaro_winkler
 
 ASSIGNING = "_frame_checker_assigning"
 RESULT_COLS = "_frame_checker_result_columns"
