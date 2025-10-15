@@ -168,7 +168,7 @@ class FrameChecker(ast.NodeVisitor):
             inner_dict: WrappedNode = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return {key.value for key in keys.val} if keys.val is not None else set()  # type: ignore
-        
+
         # If wrapped around List
         if isinstance(arg.val, ast.List):
             for elt in arg.val.elts:

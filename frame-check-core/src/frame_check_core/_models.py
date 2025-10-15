@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import NamedTuple, cast
+from typing import NamedTuple
 
 from frame_check_core._ast import WrappedNode
 
