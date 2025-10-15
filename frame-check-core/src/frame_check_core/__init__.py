@@ -139,33 +139,46 @@ class FrameChecker(ast.NodeVisitor):
 
     def resolve_args(
         self, args: WrappedNode[list[ast.Name | ast.Dict]]
-    ) -> WrappedNode[ast.Dict | None]:
+    ) -> WrappedNode[ast.List | ast.Dict | None]:
         arg0 = args[0]
         if isinstance(arg0_val := arg0.val, ast.Name):
             def_node = self.definitions.get(arg0_val.id)
             return WrappedNode(def_node)
         else:
-            return cast(WrappedNode[ast.Dict | None], arg0)
+            return cast(WrappedNode[ast.List | ast.Dict | None], arg0)
 
     def get_cols_from_data_arg(
-        self, data_arg: WrappedNode[ast.Dict | None]
+        self, data_arg: WrappedNode[ast.List | ast.Dict | None]
     ) -> set[str]:
         arg = data_arg
+        cols: set[str] = set()
         if arg.val is None:
             return set()
         if isinstance(arg.val, ast.Dict):
-            keys = arg.get("keys")
-            return (
-                {cast(str, key.value) for key in keys.val}
-                if keys.val is not None
-                else set()
-            )
+            dict_node = cast(ast.Dict, arg.val)
+            keys_nodes = dict_node.keys
+
+            for k in keys_nodes:
+                if isinstance(k, ast.Constant) and k.value is not None:
+                    cols.add(str(k.value))
+            return cols
 
         # If wrapped around Assign or other, try to get inner Dict
         if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
-            inner_dict = WrappedNode(arg.val.value)
+            inner_dict: WrappedNode = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return {key.value for key in keys.val} if keys.val is not None else set()  # type: ignore
+
+        # If wrapped around List
+        if isinstance(arg.val, ast.List):
+            for elt in arg.val.elts:
+                wrapped: WrappedNode = WrappedNode(elt)
+                keys = wrapped.get("keys")
+                if keys.val:
+                    for k in keys.val:
+                        if k.value not in cols:
+                            cols.add(str(k.value))
+            return cols
         return set()
 
     def handle_df_creation(self, node: ast.Assign) -> FrameInstance | None:
@@ -252,7 +265,7 @@ class FrameChecker(ast.NodeVisitor):
                 node,
                 node.lineno,
                 name.val,
-                data_arg,
+                cast(WrappedNode[ast.List | ast.Dict | None], data_arg),
                 [
                     WrappedNode[ast.keyword](kw)
                     for kw in call_keywords.val  # ty: ignore
@@ -294,7 +307,9 @@ class FrameChecker(ast.NodeVisitor):
                         node,
                         node.lineno,
                         last_frame.id,
-                        last_frame.data_arg,
+                        cast(
+                            WrappedNode[ast.List | ast.Dict | None], last_frame.data_arg
+                        ),
                         last_frame.keywords,
                         _columns=set(last_frame._columns),
                     )

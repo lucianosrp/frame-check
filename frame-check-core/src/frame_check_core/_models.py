@@ -1,6 +1,6 @@
 import ast
 from dataclasses import dataclass, field
-from typing import NamedTuple, cast
+from typing import NamedTuple
 
 from frame_check_core._ast import WrappedNode
 
@@ -10,28 +10,10 @@ class FrameInstance:
     _node: ast.Assign | ast.Call
     lineno: int
     id: str
-    data_arg: WrappedNode[ast.Dict | None]
+    data_arg: WrappedNode[ast.List | ast.Dict | None]
     keywords: list[WrappedNode[ast.keyword]]
     data_source_lineno: int | None = None
     _columns: set[str] = field(default_factory=set)
-
-    def _get_cols_from_data_arg(self) -> list[str]:
-        arg = self.data_arg
-        if arg.val is None:
-            return []
-        if isinstance(arg.val, ast.Dict):
-            keys = arg.get("keys")
-            return (
-                [cast(str, key.value) for key in keys.val]
-                if keys.val is not None
-                else []
-            )
-        # If wrapped around Assign or other, try to get inner Dict
-        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
-            inner_dict = WrappedNode(arg.val.value)
-            keys = inner_dict.get("keys")
-            return [str(key.value) for key in keys.val] if keys.val is not None else []
-        return []
 
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
