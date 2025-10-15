@@ -137,33 +137,44 @@ class FrameChecker(ast.NodeVisitor):
 
     def resolve_args(
         self, args: WrappedNode[list[ast.Name | ast.Dict]]
-    ) -> WrappedNode[ast.Dict | None]:
+    ) -> WrappedNode[ast.List | ast.Dict | None]:
         arg0 = args[0]
         if isinstance(arg0_val := arg0.val, ast.Name):
             def_node = self.definitions.get(arg0_val.id)
             return WrappedNode(def_node)
         else:
-            return cast(WrappedNode[ast.Dict | None], arg0)
+            return cast(WrappedNode[ast.List | ast.Dict | None], arg0)
 
     def get_cols_from_data_arg(
-        self, data_arg: WrappedNode[ast.Dict | None]
+        self, data_arg: WrappedNode[ast.List | ast.Dict | None]
     ) -> set[str]:
         arg = data_arg
+        cols: set[str] = set()
         if arg.val is None:
             return set()
         if isinstance(arg.val, ast.Dict):
-            keys = arg.get("keys")
-            return (
-                {cast(str, key.value) for key in keys.val}
-                if keys.val is not None
-                else set()
-            )
+            keys_nodes = arg.val.keys
+
+            for k in keys_nodes:
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    cols.add(k.value)
+            return cols
 
         # If wrapped around Assign or other, try to get inner Dict
         if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
-            inner_dict = WrappedNode(arg.val.value)
+            inner_dict: WrappedNode = WrappedNode(arg.val.value)
             keys = inner_dict.get("keys")
             return {key.value for key in keys.val} if keys.val is not None else set()  # type: ignore
+
+        # If wrapped around List
+        if isinstance(arg.val, ast.List):
+            for elt in arg.val.elts:
+                wrapped: WrappedNode = WrappedNode(elt)
+                keys = wrapped.get("keys")
+                if keys.val:
+                    for k in keys.val:
+                        cols.add(str(k.value))
+            return cols
         return set()
 
     def handle_df_creation(self, node: ast.Assign) -> FrameInstance | None:
