@@ -1,5 +1,5 @@
 def test_import_alias():
-    from frame_check_core.frame_checker import FrameChecker
+    from frame_check_core import FrameChecker
 
     code = """
     import pandas as pd
@@ -11,7 +11,7 @@ def test_import_alias():
 
 
 def test_import_full():
-    from frame_check_core.frame_checker import FrameChecker
+    from frame_check_core import FrameChecker
 
     code = """
     import pandas

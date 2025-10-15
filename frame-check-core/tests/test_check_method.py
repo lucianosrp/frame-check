@@ -1,4 +1,6 @@
-from frame_check_core.frame_checker import FrameChecker
+import ast
+from frame_check_core import FrameChecker
+from unittest.mock import MagicMock, patch
 
 
 def test_check_with_string_input():
@@ -14,6 +16,16 @@ value = df['C']
     assert checker.column_accesses.contains_id("C")
     assert checker.column_accesses.get("C")[-1].id == "C"
 
+    # Ensure the correct branch is taken
+    with (
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open") as mock_open,
+    ):
+        checker = FrameChecker.check(code)
+        # Ensure the AST has parsed the code string
+        mock_ast_parse.assert_called_once_with(code)
+        mock_open.assert_not_called()
+
 
 def test_check_with_ast_input():
     """Test FrameChecker.check() with AST input."""
@@ -23,10 +35,23 @@ data = {'A': [1, 2, 3], 'B': [4, 5, 6]}
 df = pd.DataFrame(data)
 value = df['A']
 """
-    checker = FrameChecker.check(code)
+    ast_module = ast.parse(code)
+    assert isinstance(ast_module, ast.Module)
+
+    checker = FrameChecker.check(ast_module)
     assert len(checker.frames.instances) == 1
     assert len(checker.column_accesses) == 1
     assert checker.column_accesses.contains_id("A")
+
+    # Ensure the correct branch is taken
+    with (
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open") as mock_open,
+    ):
+        FrameChecker.check(ast_module)
+        # Ensure the AST parse method and file open method are not called
+        mock_ast_parse.assert_not_called()
+        mock_open.assert_not_called()
 
 
 def test_check_with_file_input(tmp_path):
@@ -43,6 +68,19 @@ result = df['Z']
     checker = FrameChecker.check(test_file)
     assert len(checker.column_accesses) == 1
     assert checker.column_accesses.contains_id("Z")
+
+    mock_fd = MagicMock()
+    mock_fd.__enter__().read.return_value = code
+    # Ensure the correct branch is taken
+    with (
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open", return_value=mock_fd) as mock_open,
+    ):
+        checker = FrameChecker.check(test_file)
+        # Ensure both the AST parse method and file open method are called
+        mock_ast_parse.assert_called_once_with(code)
+        mock_open.assert_called_once_with(str(test_file), "r")
+        mock_fd.__enter__().read.assert_called_once()
 
 
 def test_check_valid_column_access():

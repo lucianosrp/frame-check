@@ -24,7 +24,7 @@ df["NonExistentColumn"]
     assert fc.diagnostics == [
         Diagnostic(
             column_name="NonExistentColumn",
-            message="Column 'NonExistentColumn' does not exist",
+            message="Column 'NonExistentColumn' does not exist.",
             severity="error",
             location=(14, 2),
             underline_length=21,
@@ -64,7 +64,7 @@ df["NonExistentColumn"]
     assert fc.diagnostics == [
         Diagnostic(
             column_name="NonExistentColumn",
-            message="Column 'NonExistentColumn' does not exist",
+            message="Column 'NonExistentColumn' does not exist.",
             severity="error",
             location=(14, 2),
             underline_length=21,
@@ -101,7 +101,7 @@ df["NonExistentColumn"]
     assert fc.diagnostics == [
         Diagnostic(
             column_name="NonExistentColumn",
-            message="Column 'NonExistentColumn' does not exist",
+            message="Column 'NonExistentColumn' does not exist.",
             severity="error",
             location=(11, 2),
             underline_length=21,
@@ -114,7 +114,7 @@ df["NonExistentColumn"]
         ),
         Diagnostic(
             column_name="NonExistentColumn",
-            message="Column 'NonExistentColumn' does not exist",
+            message="Column 'NonExistentColumn' does not exist.",
             severity="error",
             location=(12, 2),
             underline_length=21,
@@ -147,7 +147,7 @@ df["NameLower"] = df["Name"].str.lower()
         # similarity = 0.889 (<= 0.9)
         Diagnostic(
             column_name="NameLower",
-            message="Column 'NameLower' does not exist",
+            message="Column 'NameLower' does not exist.",
             severity="error",
             location=(10, 2),
             underline_length=13,

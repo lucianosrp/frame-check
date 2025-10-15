@@ -1,6 +1,6 @@
 import pytest
 
-from frame_check_core.frame_checker import FrameChecker
+from frame_check_core import FrameChecker
 
 
 def test_insert():

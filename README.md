@@ -117,11 +117,13 @@ git clone https://github.com/lucianosrp/frame-check.git
 ### Create an environment
 
 ```
-cd frame-check && uv sync
+cd frame-check
+uv sync
+uv run pre-commit install
 ```
 Each component should then have a README.md file with instructions on how to run it.
 
  ---
 
- Born at PyconHK 2025
+ Born at [PyconHK 2025](https://pycon.hk/)
  ![](https://pycon.hk/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Flogo.ebd84d16.png&w=256&q=75)

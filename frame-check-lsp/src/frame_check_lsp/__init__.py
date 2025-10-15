@@ -2,7 +2,7 @@ import ast
 import contextlib
 import sys
 
-from frame_check_core.frame_checker import FrameChecker
+from frame_check_core import FrameChecker
 from lsprotocol import types
 from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
