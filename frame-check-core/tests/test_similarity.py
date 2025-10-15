@@ -1,5 +1,5 @@
 import pytest
-from frame_check_core._col_similarity import jaro_winkler, zero_deps_jaro_winkler
+from frame_check_core.util.col_similarity import jaro_winkler, zero_deps_jaro_winkler
 
 
 @pytest.mark.parametrize(

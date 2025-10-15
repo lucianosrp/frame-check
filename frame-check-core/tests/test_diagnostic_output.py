@@ -1,5 +1,5 @@
 from frame_check_core import FrameChecker
-from frame_check_core._message import (
+from frame_check_core.util.message import (
     print_diagnostics,
 )
 

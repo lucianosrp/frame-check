@@ -1,6 +1,6 @@
+import ast
 from frame_check_core import FrameChecker
 from unittest.mock import MagicMock, patch
-import ast
 
 
 def test_check_with_string_input():
@@ -18,8 +18,8 @@ value = df['C']
 
     # Ensure the correct branch is taken
     with (
-        patch("frame_check_core.ast.parse") as mock_ast_parse,
-        patch("frame_check_core.open") as mock_open,
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open") as mock_open,
     ):
         checker = FrameChecker.check(code)
         # Ensure the AST has parsed the code string
@@ -45,8 +45,8 @@ value = df['A']
 
     # Ensure the correct branch is taken
     with (
-        patch("frame_check_core.ast.parse") as mock_ast_parse,
-        patch("frame_check_core.open") as mock_open,
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open") as mock_open,
     ):
         FrameChecker.check(ast_module)
         # Ensure the AST parse method and file open method are not called
@@ -73,8 +73,8 @@ result = df['Z']
     mock_fd.__enter__().read.return_value = code
     # Ensure the correct branch is taken
     with (
-        patch("frame_check_core.ast.parse") as mock_ast_parse,
-        patch("frame_check_core.open", return_value=mock_fd) as mock_open,
+        patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
+        patch("frame_check_core.frame_checker.open", return_value=mock_fd) as mock_open,
     ):
         checker = FrameChecker.check(test_file)
         # Ensure both the AST parse method and file open method are called

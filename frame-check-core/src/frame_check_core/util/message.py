@@ -1,8 +1,8 @@
 from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from frame_check_core import FrameChecker
-    from frame_check_core._models import Diagnostic
+    from ..frame_checker import FrameChecker
+    from ..models.diagnostic import Diagnostic
 
 
 def print_diagnostics(fc: "FrameChecker", path: str) -> None:
