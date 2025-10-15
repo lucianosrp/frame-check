@@ -15,39 +15,6 @@ class FrameInstance:
     data_source_lineno: int | None = None
     _columns: set[str] = field(default_factory=set)
 
-    def _get_cols_from_data_arg(self) -> list[str]:
-        arg = self.data_arg
-        if arg.val is None:
-            return []
-        if isinstance(arg.val, ast.Dict):
-            dict_node = cast(ast.Dict, arg.val)
-            keys_nodes = dict_node.keys
-            cols: list[str] = []
-
-            for k in keys_nodes:
-                if isinstance(k, ast.Constant) and k.value is not None:
-                    cols.append(str(k.value))
-            return cols
-
-        # If wrapped around Assign or other, try to get inner Dict
-        if isinstance(arg.val, ast.Assign) and isinstance(arg.val.value, ast.Dict):
-            inner_dict: WrappedNode = WrappedNode(arg.val.value)
-            keys = inner_dict.get("keys")
-            return [str(key.value) for key in keys.val] if keys.val is not None else []
-
-        # If wrapped around List
-        if isinstance(arg.val, ast.List):
-            cols = []
-            for elt in arg.val.elts:
-                wrapped: WrappedNode = WrappedNode(elt)
-                keys = wrapped.get("keys")
-                if keys.val:
-                    for k in keys.val:
-                        if k.value not in cols:
-                            cols.append(str(k.value))
-            return cols
-        return []
-
     def add_columns(self, *columns: str | WrappedNode[str]):
         _cols_str = list(
             filter(
