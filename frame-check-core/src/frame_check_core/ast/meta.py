@@ -1,8 +1,8 @@
 import ast
 
-from .method import DFColumns, DFMethod
+from .dataframe import DF, DFMethod
 
-Result = DFColumns | DFMethod
+Result = DF | DFMethod
 
 _ASSIGNING_ATTR = "_frame_checker_assigning"
 _RESULT_ATTR = "_frame_checker_result_columns"

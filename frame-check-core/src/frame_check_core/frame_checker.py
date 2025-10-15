@@ -10,9 +10,9 @@ from .ast.meta import (
     get_result,
     set_result,
 )
-from .ast.method import DFMethod
+from .ast.dataframe import DF
 from .util.col_similarity import zero_deps_jaro_winkler
-from .models.instance import (
+from .models.history import (
     ColumnHistory,
     ColumnInstance,
     FrameHistory,
@@ -363,24 +363,24 @@ class FrameChecker(ast.NodeVisitor):
 
         if isinstance(node.func, ast.Attribute):
             frame_id = None
-            columns = None
+            df = None
             match node.func.value:
                 case ast.Name():
                     frame_id = node.func.value.id
                     frame = self.frames.get_before(node.lineno, frame_id)
                     if frame is not None:
-                        columns = set(frame.columns)
+                        df = DF(frame.columns)
                 case ast.Call():
                     result = get_result(node.func.value)
-                    if isinstance(result, set):
-                        columns = result
+                    if isinstance(result, DF):
+                        df = result
 
-            if columns is None:
+            if df is None:
                 return
 
-            method = DFMethod.get_method(columns, node.func.attr)
+            method = df.get_method(node.func.attr)
 
-            if not callable(method):
+            if method is None:
                 return
 
             updated, returned, error = method(node.args, node.keywords)
@@ -389,7 +389,7 @@ class FrameChecker(ast.NodeVisitor):
                 pass
             if returned is not None:
                 set_result(node, returned)
-            if updated != columns and frame_id is not None:
+            if df.columns != updated.columns and frame_id is not None:
                 new_frame = FrameInstance(
                     node,
                     node.lineno,
@@ -397,6 +397,6 @@ class FrameChecker(ast.NodeVisitor):
                     WrappedNode(None),
                     [],
                     None,
-                    updated,
+                    updated.columns,
                 )
                 self.frames.add(new_frame)
