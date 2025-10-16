@@ -5,8 +5,8 @@ if TYPE_CHECKING:
     from ..models.diagnostic import Diagnostic
 
 
-def print_diagnostics(fc: "FrameChecker", path: str) -> None:
-    """Print formatted diagnostics to stdout."""
+def print_diagnostics(fc: "FrameChecker", path: str, file=None) -> None:
+    """Print formatted diagnostics to stdout or a specified file."""
     if not fc.diagnostics:
         return
 
@@ -19,19 +19,25 @@ def print_diagnostics(fc: "FrameChecker", path: str) -> None:
             max_line_num = max(max_line_num, diag.data_source_location[0])
         line_width = len(str(max_line_num))
 
-        _print_error_header(diag, path, line_width)
-        _print_code_line(diag.location, lines, diag.underline_length, "^", line_width)
-        _print_hints(diag.hint, line_width)
+        _print_error_header(diag, path, line_width, file=file)
+        _print_code_line(
+            diag.location, lines, diag.underline_length, "^", line_width, file=file
+        )
+        _print_hints(diag.hint, line_width, file=file)
 
         if diag.data_source_location:
-            _print_data_source_note(diag, lines, line_width)
+            _print_data_source_note(diag, lines, line_width, file=file)
 
 
-def _print_error_header(diag: "Diagnostic", path: str, line_width: int) -> None:
+def _print_error_header(
+    diag: "Diagnostic", path: str, line_width: int, file=None
+) -> None:
     """Print the error header line with file path and message."""
     line_num, col_num = diag.location
-    print(f"{path}:{line_num}:{col_num + 1} - {diag.severity}: {diag.message}")
-    _print_gutter(line_width)
+    print(
+        f"{path}:{line_num}:{col_num + 1} - {diag.severity}: {diag.message}", file=file
+    )
+    _print_gutter(line_width, file=file)
 
 
 def _print_code_line(
@@ -40,6 +46,7 @@ def _print_code_line(
     underline_length: int,
     underline_char: str,
     line_width: int,
+    file=None,
 ) -> None:
     """Print a code line with underline highlighting.
 
@@ -55,60 +62,66 @@ def _print_code_line(
 
     if code_line is not None:
         stripped_line, relative_col = _strip_indent(code_line, col_num)
-        print(f"{line_num:>{line_width}}|{stripped_line}")
+        print(f"{line_num:>{line_width}}|{stripped_line}", file=file)
         print(
-            f"{' ' * line_width}|{' ' * relative_col}{underline_char * underline_length}"
+            f"{' ' * line_width}|{' ' * relative_col}{underline_char * underline_length}",
+            file=file,
         )
     else:
-        print(f"{line_num:>{line_width}}| <line not available>")
-        print(f"{' ' * line_width}|          {underline_char * 3}")
+        print(f"{line_num:>{line_width}}| <line not available>", file=file)
+        print(f"{' ' * line_width}|          {underline_char * 3}", file=file)
 
-    _print_gutter(line_width)
+    _print_gutter(line_width, file=file)
 
 
-def _print_hints(hints: list[str] | None, line_width: int, skip_first: int = 0) -> None:
+def _print_hints(
+    hints: list[str] | None, line_width: int, skip_first: int = 0, file=None
+) -> None:
     """Print hint messages.
 
     Args:
         hints: List of hint messages to print
         line_width: Width for line number formatting
         skip_first: Number of initial hints to skip
+        file: Optional file-like object to write to
     """
     if not hints:
         return
 
     for hint_line in hints[skip_first:]:
-        print(f"{' ' * line_width}| {hint_line}")
+        print(f"{' ' * line_width}| {hint_line}", file=file)
 
-    _print_gutter(line_width)
-    print()
+    _print_gutter(line_width, file=file)
+    print(file=file)
 
 
 def _print_data_source_note(
-    diag: "Diagnostic", lines: list[str], line_width: int
+    diag: "Diagnostic", lines: list[str], line_width: int, file=None
 ) -> None:
     """Print the data source note section."""
     assert diag.data_source_location is not None
 
-    print("--- Note: Data defined here with these columns ---")
-    _print_gutter(line_width)
+    print("--- Note: Data defined here with these columns ---", file=file)
+    _print_gutter(line_width, file=file)
     _print_code_line(
         diag.data_source_location,
         lines,
         len(_get_line(lines, diag.data_source_location[0]) or ""),
         "~",
         line_width,
+        file=file,
     )
-    _print_hints(diag.hint, line_width, skip_first=1)
+    _print_hints(diag.hint, line_width, skip_first=1, file=file)
 
 
-def _print_gutter(line_width: int) -> None:
+def _print_gutter(line_width: int, file=None) -> None:
     """Print a gutter separator line.
 
     Args:
         line_width: Width for line number formatting
+        file: Optional file-like object to write to
     """
-    print(f"{' ' * line_width}|")
+    print(f"{' ' * line_width}|", file=file)
 
 
 def _get_line(lines: list[str], line_num: int) -> str | None:
