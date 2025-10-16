@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from enum import StrEnum
 
+
 class IllegalAccess:
     pass
 
+
 class Severity(StrEnum):
     ERROR = "error"
+
 
 @dataclass
 class Diagnostic:
