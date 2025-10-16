@@ -1,4 +1,5 @@
 from frame_check_core.frame_checker import Diagnostic, FrameChecker
+from frame_check_core.models.diagnostic import Severity
 
 
 def test_diagnostics_data():
@@ -25,7 +26,7 @@ df["NonExistentColumn"]
         Diagnostic(
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
-            severity="error",
+            severity=Severity.ERROR,
             location=(14, 2),
             underline_length=21,
             hint=[
@@ -65,7 +66,7 @@ df["NonExistentColumn"]
         Diagnostic(
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
-            severity="error",
+            severity=Severity.ERROR,
             location=(14, 2),
             underline_length=21,
             hint=[
@@ -102,7 +103,7 @@ df["NonExistentColumn"]
         Diagnostic(
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
-            severity="error",
+            severity=Severity.ERROR,
             location=(11, 2),
             underline_length=21,
             hint=[
@@ -115,7 +116,7 @@ df["NonExistentColumn"]
         Diagnostic(
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
-            severity="error",
+            severity=Severity.ERROR,
             location=(12, 2),
             underline_length=21,
             hint=[
@@ -148,7 +149,7 @@ df["NameLower"] = df["Name"].str.lower()
         Diagnostic(
             column_name="NameLower",
             message="Column 'NameLower' does not exist.",
-            severity="error",
+            severity=Severity.ERROR,
             location=(10, 2),
             underline_length=13,
             hint=[
@@ -187,7 +188,7 @@ df["EmpolyeeName"]
         Diagnostic(
             column_name="EmpolyeeName",
             message="Column 'EmpolyeeName' does not exist, did you mean 'employee_name'?",
-            severity="error",
+            severity=Severity.ERROR,
             location=(15, 2),
             underline_length=16,
             hint=[
