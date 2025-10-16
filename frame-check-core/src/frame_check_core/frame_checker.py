@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Self, cast, override
 
-from .ast.meta import (
+from .ast.models import (
     is_assigning,
     set_assigning,
     get_result,
