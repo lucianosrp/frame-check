@@ -51,7 +51,7 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 
 | ID | Method | Syntax | Example | Notes |
 |--------|--------|--------|---------|-------|
-|<a id="cam-1"></a># CAM-1 | **Direct assignment** | `df['col'] = value` | `df['new_col'] = 0` | Most common method |
+|<a id="CAM-1"></a># CAM-1 | **Direct assignment** | `df['col'] = value` | `df['new_col'] = 0` | Most common method |
 |# CAM-2 | **Attribute assignment** | `df.col = value` | `df.new_col = [1,2,3]` | Only works for valid Python identifiers |
 |# CAM-3 | **loc indexer** | `df.loc[:, 'col'] = value` | `df.loc[:, 'A'] = 100` | Can assign to slices |
 |# CAM-4| **iloc indexer** | `df.iloc[:, index] = value` | `df.iloc[:, 0] = 99` | Position-based assignment |
