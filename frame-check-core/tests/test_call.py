@@ -1,8 +1,10 @@
 import pytest
-
 from frame_check_core import FrameChecker
 
 
+@pytest.mark.support(
+    name="df.insert", code="#CAM-9", example='df.insert(0, "A", [1, 2, 3])'
+)
 def test_insert():
     code = """
 import pandas as pd
@@ -16,6 +18,7 @@ df["A"]
     assert len(fc.diagnostics) == 0
 
 
+@pytest.mark.support(name="df.assign", code="#CAM-7", example="df.assign(A=[1, 2, 3])")
 @pytest.mark.xfail(reason="Not implemented")
 def test_assign_create():
     code = """
@@ -30,6 +33,9 @@ df["A"]
     assert len(fc.diagnostics) == 0
 
 
+@pytest.mark.support(
+    name="df.assign + subscript", code="#CAM-7-1", example="df.assign(A=[1, 2, 3])['A']"
+)
 @pytest.mark.xfail(reason="Not implemented")
 def test_assign_subscript():
     code = """
@@ -41,6 +47,11 @@ df.assign(A=[1, 2, 3])["A"]
     assert len(fc.diagnostics) == 0
 
 
+@pytest.mark.support(
+    name="df.assign chaining",
+    code="#CAM-7-2",
+    example="df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])",
+)
 @pytest.mark.xfail(reason="Not implemented")
 def test_assign_chain():
     code = """
