@@ -19,7 +19,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
-from .models.diagnostic import Diagnostic
+from .models.diagnostic import Diagnostic, Severity
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -109,7 +109,7 @@ class FrameChecker(ast.NodeVisitor):
                 diagnostic = Diagnostic(
                     column_name=access.id,
                     message=message,
-                    severity="error",
+                    severity=Severity.ERROR,
                     location=(access.lineno, access.start_col),
                     underline_length=access.underline_length,
                     hint=hints,

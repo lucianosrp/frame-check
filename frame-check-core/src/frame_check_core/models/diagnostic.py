@@ -1,15 +1,17 @@
 from dataclasses import dataclass
-
+from enum import StrEnum
 
 class IllegalAccess:
     pass
 
+class Severity(StrEnum):
+    ERROR = "error"
 
 @dataclass
 class Diagnostic:
     column_name: str
     message: str
-    severity: str
+    severity: Severity
     location: tuple[int, int]
     underline_length: int = 0
     hint: list[str] | None = None
