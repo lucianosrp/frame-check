@@ -51,17 +51,17 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 
 | ID | Method | Syntax | Example | Notes |
 |--------|--------|--------|---------|-------|
-|# CAM-1| **Direct assignment** | `df['col'] = value` | `df['new_col'] = 0` | Most common method |
-|# CAM-2| **Attribute assignment** | `df.col = value` | `df.new_col = [1,2,3]` | Only works for valid Python identifiers |
-|# CAM-3| **loc indexer** | `df.loc[:, 'col'] = value` | `df.loc[:, 'A'] = 100` | Can assign to slices |
-|# CAM-4| **iloc indexer** | `df.iloc[:, index] = value` | `df.iloc[:, 0] = 99` | Position-based assignment |
-|# CAM-5| **at indexer** | `df.at[row, 'col'] = value` | `df.at[0, 'A'] = 5` | Single cell assignment |
-|# CAM-6| **iat indexer** | `df.iat[row, col_idx] = value` | `df.iat[0, 1] = 10` | Single cell by position |
-|# CAM-7| **assign method** | `df = df.assign(col=value)` | `df = df.assign(new=lambda x: x['A']*2)` | Returns new DataFrame |
-|# CAM-8| **Multiple assign** | `df = df.assign(**kwargs)` | `df = df.assign(B=1, C=2)` | Multiple columns at once |
-|# CAM-9| **insert method** | `df.insert(loc, 'col', value)` | `df.insert(1, 'new', 0)` | Specify position |
-|# CAM-10| **setitem with list** | `df[['A','B']] = values` | `df[['X','Y']] = df[['A','B']]` | Multiple columns |
-|# CAM-11| **From dictionary** | `df = pd.DataFrame(dict)` | `df = pd.DataFrame({'A': [1,2], 'B': [3,4]})` | Constructor |
+| # CAM-1 | **Direct assignment** | `df['col'] = value` | `df['new_col'] = 0` | Most common method |
+| # CAM-2 | **Attribute assignment** | `df.col = value` | `df.new_col = [1,2,3]` | Only works for valid Python identifiers |
+| # CAM-3 | **loc indexer** | `df.loc[:, 'col'] = value` | `df.loc[:, 'A'] = 100` | Can assign to slices |
+| # CAM-4| **iloc indexer** | `df.iloc[:, index] = value` | `df.iloc[:, 0] = 99` | Position-based assignment |
+| # CAM-5| **at indexer** | `df.at[row, 'col'] = value` | `df.at[0, 'A'] = 5` | Single cell assignment |
+| # CAM-6| **iat indexer** | `df.iat[row, col_idx] = value` | `df.iat[0, 1] = 10` | Single cell by position |
+| # CAM-7| **assign method** | `df = df.assign(col=value)` | `df = df.assign(new=lambda x: x['A']*2)` | Returns new DataFrame |
+| # CAM-8| **Multiple assign** | `df = df.assign(**kwargs)` | `df = df.assign(B=1, C=2)` | Multiple columns at once |
+| # CAM-9| **insert method** | `df.insert(loc, 'col', value)` | `df.insert(1, 'new', 0)` | Specify position |
+| # CAM-10| **setitem with list** | `df[['A','B']] = values` | `df[['X','Y']] = df[['A','B']]` | Multiple columns |
+| # CAM-11| **From dictionary** | `df = pd.DataFrame(dict)` | `df = pd.DataFrame({'A': [1,2], 'B': [3,4]})` | Constructor |
 |# CAM-12| **concat** | `df = pd.concat([df, new_df], axis=1)` | `df = pd.concat([df, df2], axis=1)` | Horizontal concatenation |
 |# CAM-13| **join** | `df = df.join(other_df)` | `df = df.join(df2[['C']])` | Adds columns from other DataFrame |
 |# CAM-14| **merge** | `df = df.merge(df2)` | `df = df.merge(df2, on='key')` | Can add columns via merge |
@@ -129,7 +129,7 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 The following table shows various ways to create pandas DataFrames and their current support status in frame-check:
 
 | ID | Creation Method | Example | Supported | Notes |
-|------||-----------------|---------|-----------|-------|
+|------|-----------------|---------|-----------|-------|
 |# DCMS-1| **Dictionary of Lists** | `pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})` | ✅ | Fully supported - primary use case |
 |# DCMS-2| **List of Dictionaries** | `pd.DataFrame([{'col1': 1, 'col2': 3}, {'col1': 2, 'col2': 4}])` | ❌ | Not yet implemented |
 |# DCMS-3| **Dictionary of Series** | `pd.DataFrame({'col1': pd.Series([1, 2]), 'col2': pd.Series([3, 4])})` | ❌ | Not yet implemented |
