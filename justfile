@@ -10,3 +10,6 @@ docs *cmd="":
 
 lsp-code:
     cd frame-check-extensions/vscode && ./install-dev.sh
+
+lint:
+    uv run pre-commit run
