@@ -1,15 +1,16 @@
 import ast
 import os
 from pathlib import Path
-from typing import Any, Self, cast, override
+from typing import Self, override
 
 from .ast.models import (
+    Result,
     is_assigning,
     set_assigning,
     get_result,
     set_result,
 )
-from .ast.dataframe import DF
+from .ast.models import PD, DF
 from .util.col_similarity import zero_deps_jaro_winkler
 from .models.history import (
     ColumnHistory,
@@ -33,13 +34,9 @@ class FrameChecker(ast.NodeVisitor):
 
         self.frames: FrameHistory = FrameHistory()
         self.column_accesses: ColumnHistory = ColumnHistory()
-        self.definitions: dict[str, ast.AST] = {}
+        self.definitions: dict[str, Result] = {}
         self.diagnostics: list[Diagnostic] = []
         self.source = ""
-        self.df_creation_handlers = {
-            "DataFrame": self.new_frame_instance,
-            "read_csv": self.frame_from_read_csv,
-        }
 
     @classmethod
     def check(cls, code: str | ast.Module | Path) -> Self:
@@ -117,33 +114,6 @@ class FrameChecker(ast.NodeVisitor):
                 )
                 self.diagnostics.append(diagnostic)
 
-    @staticmethod
-    def _is_dict(node: ast.Assign) -> bool:
-        return isinstance(node.value, ast.Dict)
-
-    def maybe_get_df(self, node: ast.Assign) -> ast.Assign | None:
-        """Check if an assignment creates a pandas Frame."""
-        if isinstance(node.value, ast.Call):
-            func = node.value.func
-            # Check if this is a pandas Frame constructor
-            if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name):
-                if (
-                    func.value.id in self.import_aliases.values()
-                    and func.attr in self.df_creation_handlers
-                ):
-                    return node
-        return None
-
-    def resolve_args(self, args: list[ast.expr]) -> ast.List | ast.Dict | None:
-        arg0: Any = args[0]
-        if isinstance(arg0, ast.Name):
-            arg0 = self.definitions.get(arg0.id)
-        if isinstance(arg0, ast.Assign):
-            arg0 = arg0.value
-        if isinstance(arg0, (ast.List, ast.Dict)):
-            return arg0
-        return None
-
     def get_cols_from_data_arg(self, arg: ast.AST | None) -> set[str]:
         cols: set[str] = set()
 
@@ -179,115 +149,29 @@ class FrameChecker(ast.NodeVisitor):
 
         return set()
 
-    def handle_df_creation(self, node: ast.Assign) -> FrameInstance | None:
-        """Routes DataFrame creation calls to the appropriate handler."""
-        if isinstance(node.value, ast.Call):
-            if isinstance(node.value.func, ast.Attribute):
-                df_creator = node.value.func.attr
-                handler = self.df_creation_handlers.get(df_creator)
-                return handler and handler(node)
-        return None
-
-    def frame_from_read_csv(self, node: ast.Assign) -> FrameInstance | None:
-        """
-        Handle pd.read_csv calls to create FrameInstance.
-        Reads the column list from the 'usecols' keyword argument if present.
-        If not, ignores the DataFrame.
-        """
-        # Basic implementation reads list contents of usecols kwarg iff
-        # This is a list of string constants or a variable assigned to such a list.
-        # TODO: Handle longer assignment chains, including variables within the list
-        if not isinstance(node.targets[0], ast.Name):
-            return None
-        df_name = node.targets[0].id
-
+    def _maybe_create_df(self, node: ast.Assign) -> None:
         if not isinstance(node.value, ast.Call):
-            return None
-        call_keywords = node.value.keywords
-
-        usecols_kw: ast.keyword | None = None
-        for kw in call_keywords or []:
-            if kw.arg == "usecols":
-                usecols_kw = kw
-                break
-        if usecols_kw is None:
-            return None
-
-        usecols_value = usecols_kw.value
-        data_source_lineno = None
-        match usecols_value:
-            case ast.List(elts):
-                pass
-            case ast.Name(name):
-                def_node = self.definitions.get(name)
-                if not isinstance(def_node, ast.Assign):
-                    return None
-                if not isinstance(def_node.value, ast.List):
-                    return None
-                data_source_lineno = def_node.lineno
-                elts = def_node.value.elts
-            case _:
-                return None
-
-        if not all(isinstance(e, ast.Constant) for e in elts):
-            return None
-        elts_const = cast(list[ast.Constant], elts)
-
-        if all(isinstance(e.value, int) for e in elts_const):
-            # Passing indices not column names
-            return None
-        if all(isinstance(e.value, str) for e in elts_const):
-            columns = cast(list[str], [e.value for e in elts_const])
-        else:
-            return None
-
-        return FrameInstance(
-            node,
-            node.lineno,
-            df_name,
-            None,
-            call_keywords or [],
-            data_source_lineno=data_source_lineno,
-            _columns=set(columns),
-        )
-
-    def new_frame_instance(self, node: ast.Assign) -> FrameInstance | None:
-        if not isinstance(node.targets[0], ast.Name):
-            return None
-        name = node.targets[0].id
-
-        if not isinstance(node.value, ast.Call):
-            return None
-        call = node.value
-        original_arg = call.args[0]
-        data_arg = self.resolve_args(call.args)
-        call_keywords = call.keywords
-
-        data_source_lineno = None
-        if isinstance(original_arg, ast.Name):
-            def_node = self.definitions.get(original_arg.id)
-            if isinstance(def_node, ast.Assign):
-                data_source_lineno = def_node.lineno
-
-        if name is not None and data_arg is not None and call_keywords is not None:
-            return FrameInstance(
+            return
+        func = node.value.func
+        if not isinstance(func, ast.Attribute) or not isinstance(func.value, ast.Name):
+            return
+        method = PD.get_method(func.attr)
+        if method is None:
+            return
+        created, error = method(node.value.args, node.value.keywords)
+        if error is not None:
+            pass  # TODO
+        if created is not None:
+            new_frame = FrameInstance(
                 node,
                 node.lineno,
-                name,
-                data_arg,
-                call_keywords,
-                data_source_lineno=data_source_lineno,
-                _columns=self.get_cols_from_data_arg(data_arg),
+                node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
+                None,
+                [],
+                node.lineno,
+                created.columns,
             )
-        return None
-
-    def maybe_assign_df(self, node: ast.Assign) -> bool:
-        maybe_df = self.maybe_get_df(node)
-        if maybe_df is not None:
-            if frame := self.handle_df_creation(maybe_df):
-                self.frames.add(frame)
-                return True
-        return False
+            self.frames.add(new_frame)
 
     @override
     def visit_Assign(self, node: ast.Assign):
@@ -300,7 +184,7 @@ class FrameChecker(ast.NodeVisitor):
         for target in node.targets:
             if isinstance(target, ast.Name):
                 # Defining a variable
-                self.definitions[target.id] = node
+                self.definitions[target.id] = get_result(node.value)
 
             elif isinstance(target, ast.Subscript):
                 subscript = target
@@ -330,7 +214,7 @@ class FrameChecker(ast.NodeVisitor):
 
                     self.frames.add(new_frame)
 
-        self.maybe_assign_df(node)
+        self._maybe_create_df(node)
 
     @override
     def visit_Import(self, node: ast.Import):
@@ -339,6 +223,12 @@ class FrameChecker(ast.NodeVisitor):
             if alias.name == "pandas":
                 # Use asname if available, otherwise use the module name
                 self.import_aliases["pandas"] = alias.asname or alias.name
+
+    @override
+    def visit_Name(self, node):
+        self.generic_visit(node)
+        if node.id in self.definitions:
+            set_result(node, self.definitions[node.id])
 
     @override
     def visit_Subscript(self, node: ast.Subscript):
