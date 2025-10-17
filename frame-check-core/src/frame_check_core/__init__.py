@@ -96,14 +96,13 @@ def main(argv: list[str] | None = None, config: Config | None = None) -> int:
     parser = create_parser()
     args = parser.parse_args(argv)
 
+    config = Config()  # Default configuration
+
     if (frame_check_settings := Path.cwd() / "frame-check.toml").exists():
         config = config or Config.load_from(frame_check_settings)
 
     elif (pyproject_settings := Path.cwd() / "pyproject.toml").exists():
         config = config or Config.load_from(pyproject_settings)
-
-    else:
-        raise ValueError("No configuration file found.")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
