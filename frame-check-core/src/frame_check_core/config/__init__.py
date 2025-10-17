@@ -1,6 +1,5 @@
 import tomllib
 from dataclasses import dataclass, field
-from functools import cache
 from pathlib import Path
 
 
