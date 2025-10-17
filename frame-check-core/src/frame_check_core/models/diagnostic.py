@@ -10,7 +10,7 @@ class Severity(StrEnum):
     ERROR = "error"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Diagnostic:
     column_name: str
     message: str

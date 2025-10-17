@@ -134,7 +134,7 @@ Each component should then have a README.md file with instructions on how to run
 | <a id="#CAM-7-2"></a>#CAM-7-2   | df.assign chaining          | df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])                       | ❌          |
 | <a id="#CAM-9"></a>#CAM-9       | df.insert                   | df.insert(0, "A", [1, 2, 3])                                     | ✅          |
 | <a id="#DCMS-6"></a>#DCMS-6     | read_csv + usecols inline   | df = pd.read_csv('file.csv', usecols=['a', 'b', 'c'])            | ✅          |
-| <a id="#DCMS-6-1"></a>#DCMS-6-1 | read_csv + usecols indirect | cols=['a', 'b', 'c']; df = pd.read_csv('file.csv', usecols=cols) | ✅          |
+| <a id="#DCMS-6-1"></a>#DCMS-6-1 | read_csv + usecols indirect | cols=['a', 'b', 'c']; df = pd.read_csv('file.csv', usecols=cols) | ❌          |
 
 Note: some not-supported features may not be present in this list
 

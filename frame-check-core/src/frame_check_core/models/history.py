@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import NamedTuple
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FrameInstance:
     _node: ast.Assign | ast.Call
     lineno: int
@@ -33,7 +33,7 @@ class FrameInstance:
         return sorted(self._columns)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ColumnInstance:
     _node: ast.Subscript
     lineno: int
@@ -48,7 +48,7 @@ class LineIdKey(NamedTuple):
     id: str
 
 
-@dataclass
+@dataclass(kw_only=True)
 class InstanceHistory[I: FrameInstance | ColumnInstance]:
     instances: dict[LineIdKey, I] = field(default_factory=dict)
 
