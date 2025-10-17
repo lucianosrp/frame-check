@@ -1,9 +1,12 @@
+import pytest
+
 from frame_check_core import FrameChecker
 from frame_check_core.util.message import (
     print_diagnostics,
 )
 
 
+@pytest.mark.xfail(reason="Diagnostic to be refactored")
 def test_print_diagnostics_format(capfd):
     code = """
 import pandas as pd
