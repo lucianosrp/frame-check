@@ -239,20 +239,15 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         if not isinstance(node.value, ast.Name):
-            self.generic_visit(node)
             return
 
         frame_id = node.value.id
         if frame_id not in self.frames.instance_keys():
-            # not a dataframe
-            self.generic_visit(node)
             return
 
         if not isinstance(const := node.slice, ast.Constant) or not isinstance(
             const.value, str
         ):
-            # not a constant string column access
-            self.generic_visit(node)
             return
 
         # referencing a column by string constant
@@ -269,8 +264,6 @@ class FrameChecker(ast.NodeVisitor):
                 start_col=start_col,
                 underline_length=underline_length,
             )
-
-        self.generic_visit(node)
 
     @override
     def visit_Call(self, node: ast.Call):
