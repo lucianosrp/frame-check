@@ -163,13 +163,13 @@ class FrameChecker(ast.NodeVisitor):
             pass  # TODO
         if created is not None:
             new_frame = FrameInstance(
-                node,
-                node.lineno,
-                node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
-                None,
-                [],
-                node.lineno,
-                created.columns,
+                _node=node,
+                lineno=node.lineno,
+                id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
+                data_arg=None,
+                keywords=[],
+                data_source_lineno=node.lineno,
+                _columns=created.columns,
             )
             self.frames.add(new_frame)
 
@@ -197,11 +197,11 @@ class FrameChecker(ast.NodeVisitor):
                 if last_frame:
                     # New column assignment to existing DataFrame
                     new_frame = FrameInstance(
-                        node,
-                        node.lineno,
-                        last_frame.id,
-                        last_frame.data_arg,
-                        last_frame.keywords,
+                        _node=node,
+                        lineno=node.lineno,
+                        id=last_frame.id,
+                        data_arg=last_frame.data_arg,
+                        keywords=last_frame.keywords,
                         _columns=set(last_frame._columns),
                     )
                     subscript_slice = subscript.slice
@@ -262,12 +262,12 @@ class FrameChecker(ast.NodeVisitor):
             underline_length = (node.end_col_offset or 0) - start_col
             # record this column access
             self.column_accesses[LineIdKey(node.lineno, const.value)] = ColumnInstance(
-                node,
-                node.lineno,
-                const.value,
-                frame,
-                start_col,
-                underline_length,
+                _node=node,
+                lineno=node.lineno,
+                id=const.value,
+                frame=frame,
+                start_col=start_col,
+                underline_length=underline_length,
             )
 
         self.generic_visit(node)
@@ -306,12 +306,12 @@ class FrameChecker(ast.NodeVisitor):
                 set_result(node, returned)
             if df.columns != updated.columns and frame_id is not None:
                 new_frame = FrameInstance(
-                    node,
-                    node.lineno,
-                    frame_id,
-                    None,
-                    [],
-                    None,
-                    updated.columns,
+                    _node=node,
+                    lineno=node.lineno,
+                    id=frame_id,
+                    data_arg=None,
+                    keywords=[],
+                    data_source_lineno=None,
+                    _columns=updated.columns,
                 )
                 self.frames.add(new_frame)
