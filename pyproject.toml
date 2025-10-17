@@ -40,5 +40,5 @@ exclude = ['frame-check-extensions']
 
 [tool.frame-check]
 exclude = [
-    'vscode/',   # Exclude VS Code extension files
+    'frame-check-extensions/',
 ]
