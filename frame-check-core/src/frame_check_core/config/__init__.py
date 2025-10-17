@@ -38,6 +38,9 @@ class Config:
         - Directory wildcards: 'src/*.py' (matches .py files directly in src/)
         - Recursive wildcards: '**/*.py' (matches .py files in any subdirectory)
         - Directory with wildcards: 'src/*/file.py' (matches file.py in any direct subdirectory of src/)
+
+        This function handles both Unix-style and Windows-style paths, normalizing them to use
+        forward slashes for consistent cross-platform pattern matching.
         """
         if not self.exclude:
             return False
@@ -49,8 +52,10 @@ class Config:
             # File is outside root path
             return False
 
+        # Normalize path for cross-platform compatibility
+        rel_path_normalized = rel_path.as_posix()  # Convert to forward slashes
         rel_parts = rel_path.parts
-        rel_str = str(rel_path)
+        rel_str = rel_path_normalized
 
         for pattern in self.exclude:
             pattern = pattern.rstrip("/")
@@ -70,6 +75,10 @@ class Config:
                             if fnmatch(rel_path.name, Path(suffix).name):
                                 return True
 
+                            # Check if the path matches the **/ pattern with any directory
+                            if fnmatch(rel_str, f"**/{suffix}"):
+                                return True
+
                 # Handle wildcards in directory/file pattern like "dir/*.py"
                 elif "/" in pattern:
                     # Handle patterns with wildcards in the directory part
@@ -78,12 +87,19 @@ class Config:
                         pattern_parts = Path(pattern).parts
                         rel_parts_to_check = rel_parts[: len(pattern_parts)]
 
+                        # Convert pattern parts to use forward slashes
+                        pattern_parts_normalized = [
+                            p.replace("\\", "/") for p in pattern_parts
+                        ]
+
                         if len(rel_parts_to_check) == len(pattern_parts):
                             match = True
                             for pattern_part, path_part in zip(
-                                pattern_parts, rel_parts_to_check
+                                pattern_parts_normalized, rel_parts_to_check
                             ):
-                                if not fnmatch(path_part, pattern_part):
+                                # Convert path_part to string with forward slashes
+                                path_part_str = str(path_part).replace("\\", "/")
+                                if not fnmatch(path_part_str, pattern_part):
                                     match = False
                                     break
                             if match:
@@ -91,11 +107,16 @@ class Config:
                     else:
                         # Handle simple dir/*.py pattern
                         pattern_path = Path(pattern)
-                        pattern_dir = str(pattern_path.parent)
+                        pattern_dir = (
+                            pattern_path.parent.as_posix()
+                        )  # Use forward slashes
                         pattern_filename = pattern_path.name
 
                         # Match only files directly in the specified directory
-                        if str(rel_path.parent) == pattern_dir:
+                        rel_parent_normalized = (
+                            rel_path.parent.as_posix()
+                        )  # Use forward slashes
+                        if rel_parent_normalized == pattern_dir:
                             if fnmatch(rel_path.name, pattern_filename):
                                 return True
                 else:
@@ -106,20 +127,39 @@ class Config:
             # Simple directory prefix check
             elif "/" in pattern:
                 # It's a simple path like ".venv" or "tests/fixtures"
-                pattern_parts = Path(pattern).parts
-                # Check if pattern is a prefix of the file path
+                # Convert pattern to use forward slashes consistently
+                pattern_normalized = pattern.replace("\\", "/")
+                pattern_parts = Path(pattern_normalized).parts
+
+                # Check if the normalized path starts with the pattern
+                if rel_str.startswith(pattern_normalized):
+                    return True
+
+                # Alternative check using parts
                 if len(rel_parts) >= len(pattern_parts):
-                    if rel_parts[: len(pattern_parts)] == pattern_parts:
+                    # Convert both sides to strings with forward slashes for comparison
+                    rel_parts_normalized = [
+                        str(p).replace("\\", "/")
+                        for p in rel_parts[: len(pattern_parts)]
+                    ]
+                    pattern_parts_normalized = [
+                        str(p).replace("\\", "/") for p in pattern_parts
+                    ]
+
+                    if rel_parts_normalized == pattern_parts_normalized:
                         return True
 
             # Simple filename or exact path matches
             else:
+                # Convert pattern to use forward slashes
+                pattern_normalized = pattern.replace("\\", "/")
+
                 # Handle exact path match
-                if pattern == rel_str:
+                if pattern_normalized == rel_str:
                     return True
 
                 # Handle directory matches (when a path starts with pattern/)
-                if rel_str.startswith(pattern + "/"):
+                if rel_str.startswith(pattern_normalized + "/"):
                     return True
 
                 # Handle simple filename matches
