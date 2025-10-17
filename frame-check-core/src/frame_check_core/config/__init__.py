@@ -1,38 +1,31 @@
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
-
-def handle_pyproject(cls: "Config", config: dict[str, Any]) -> "Config":
-    frame_check_table = config.get("tool", {}).get("frame-check", {})
-    cls.exclude = set(frame_check_table.get("exclude", []))
-    return cls
-
-
-def handle_frame_check_toml(cls: "Config", config: dict[str, Any]) -> "Config":
-    cls.exclude = set(config.get("exclude", []))
-    return cls
 
 
 @dataclass
 class Config:
     root_path: Path = field(default=Path.cwd())
-    exclude: set[str] | None = None
+    exclude: set[str] = field(default_factory=lambda: {".venv/"})
 
     @classmethod
     def load_from(cls, file: str | Path):
         with open(file, "rb") as f:
             config = tomllib.load(f)
             _class = cls(root_path=Path(file).parent)
-            if Path(file).name == "pyproject.toml":
-                _class = handle_pyproject(_class, config)
-            elif Path(file).name == "frame-check.toml":
-                _class = handle_frame_check_toml(_class, config)
-            assert _class.exclude is not None, (
-                "exclude should not be None at this point"
-            )
-            _class.exclude.add(".venv/")
+
+            match Path(file).name:
+                case "pyproject.toml":
+                    framecheck_table = config.get("tool", {}).get("frame-check", {})
+                case "frame-check.toml":
+                    framecheck_table = config
+                case _:
+                    raise ValueError(
+                        "File for loading config should be either pyproject.toml or frame-check.toml"
+                    )
+
+            _class.exclude.update(framecheck_table.get("exclude", []))
+
         return _class
 
     def should_exclude(self, file_path: Path) -> bool:
