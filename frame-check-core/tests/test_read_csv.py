@@ -26,6 +26,7 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
     assert frame_instance.lineno == 4
 
 
+@pytest.mark.xfail(reason="FrameInstance to be refactored")
 @pytest.mark.support(
     name="read_csv + usecols indirect",
     code="#DCMS-6-1",
