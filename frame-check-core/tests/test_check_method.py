@@ -1,6 +1,7 @@
 import ast
-from frame_check_core import FrameChecker
 from unittest.mock import MagicMock, patch
+
+from frame_check_core import FrameChecker
 
 
 def test_check_with_string_input():
