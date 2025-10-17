@@ -26,6 +26,7 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
     assert frame_instance.lineno == 4
 
 
+@pytest.mark.xfail(reason="FrameInstance to be refactored")
 @pytest.mark.support(
     name="read_csv + usecols indirect",
     code="#DCMS-6-1",
@@ -64,11 +65,9 @@ a = 'a'
 df = pd.read_csv("{CSV_TEST_FILE}", usecols=[a, 'b', 'c'])
 """
     fc = FrameChecker.check(code)
-    # ! Non-string lists are ignored
-    assert fc.frames.instance_keys() == []
-    # assert fc.frames.instance_keys() == ["df"]
-    # frame_instance = fc.frames.get_at(4, "df")
-    # assert frame_instance is not None
-    # assert frame_instance.id == "df"
-    # assert frame_instance.columns == ["a", "b", "c"]
-    # assert frame_instance.lineno == 4
+    assert fc.frames.instance_keys() == ["df"]
+    frame_instance = fc.frames.get_at(4, "df")
+    assert frame_instance is not None
+    assert frame_instance.id == "df"
+    assert frame_instance.columns == ["a", "b", "c"]
+    assert frame_instance.lineno == 4
