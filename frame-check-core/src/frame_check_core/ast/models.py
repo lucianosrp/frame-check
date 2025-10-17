@@ -29,7 +29,7 @@ def get_value(node: ast.AST) -> Result:
     elif isinstance(node, ast.List):
         elements = []
         for elt in node.elts:
-            parsed_elt = get_value(elt)
+            parsed_elt = get_result(elt)
             elements.append(parsed_elt)
         return elements
     elif isinstance(node, ast.Dict):
@@ -37,8 +37,8 @@ def get_value(node: ast.AST) -> Result:
         for key_node, value_node in zip(node.keys, node.values):
             if key_node is None:
                 continue
-            key = get_value(key_node)
-            value = get_value(value_node)
+            key = get_result(key_node)
+            value = get_result(value_node)
             result_dict[key] = value
         return result_dict
     else:
