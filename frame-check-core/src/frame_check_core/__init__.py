@@ -99,10 +99,10 @@ def main(argv: list[str] | None = None, config: Config | None = None) -> int:
     config = Config()  # Default configuration
 
     if (frame_check_settings := Path.cwd() / "frame-check.toml").exists():
-        config = config or Config.load_from(frame_check_settings)
+        config = Config.load_from(frame_check_settings)
 
     elif (pyproject_settings := Path.cwd() / "pyproject.toml").exists():
-        config = config or Config.load_from(pyproject_settings)
+        config = Config.load_from(pyproject_settings)
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
