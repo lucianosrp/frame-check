@@ -44,6 +44,8 @@ df = pd.DataFrame({})
 df.assign(A=[1, 2, 3])["A"]
 """
     fc = FrameChecker.check(code)
+    df = fc.frames.get("df")[-1]
+    assert df.columns == ["A"]
     assert len(fc.diagnostics) == 0
 
 
