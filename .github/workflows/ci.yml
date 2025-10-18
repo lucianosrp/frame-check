@@ -30,7 +30,7 @@ jobs:
         run: uv sync --locked --dev
 
       - name: Run frame-check-core tests
-        run: uv run --directory frame-check-core pytest -v
+        run: uv run pytest -v
 
   lint-and-benchmark:
     name: Lint and Benchmark

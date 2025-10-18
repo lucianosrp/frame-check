@@ -19,7 +19,7 @@ df["A"]
 
 
 @pytest.mark.support(name="df.assign", code="#CAM-7", example="df.assign(A=[1, 2, 3])")
-@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.xfail(reason="Not implemented", strict=True)
 def test_assign_create():
     code = """
 import pandas as pd
@@ -36,7 +36,7 @@ df["A"]
 @pytest.mark.support(
     name="df.assign + subscript", code="#CAM-7-1", example="df.assign(A=[1, 2, 3])['A']"
 )
-@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.xfail(reason="Not implemented", strict=True)
 def test_assign_subscript():
     code = """
 import pandas as pd
@@ -44,6 +44,8 @@ df = pd.DataFrame({})
 df.assign(A=[1, 2, 3])["A"]
 """
     fc = FrameChecker.check(code)
+    df = fc.frames.get("df")[-1]
+    assert df.columns == ["A"]
     assert len(fc.diagnostics) == 0
 
 
@@ -52,7 +54,7 @@ df.assign(A=[1, 2, 3])["A"]
     code="#CAM-7-2",
     example="df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])",
 )
-@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.xfail(reason="Not implemented", strict=True)
 def test_assign_chain():
     code = """
 import pandas as pd

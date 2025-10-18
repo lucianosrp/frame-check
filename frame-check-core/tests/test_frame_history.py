@@ -1,5 +1,4 @@
 import pytest
-
 from frame_check_core import FrameChecker
 from frame_check_core.models.history import LineIdKey
 
@@ -17,7 +16,7 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     assert list(fc.frames.instances.keys()) == [LineIdKey(4, "df")]
 
 
-@pytest.mark.xfail(reason="Not implemented yet")
+@pytest.mark.xfail(reason="Not implemented yet", strict=True)
 def test_reassign_frame_history():
     code = """
 import pandas as pd
