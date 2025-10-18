@@ -35,4 +35,10 @@ dev = [
 typeCheckingMode = "basic"
 
 [tool.ruff]
-exclude =['frame-check-extensions']
+exclude = ['frame-check-extensions']
+
+
+[tool.frame-check]
+exclude = [
+    'frame-check-extensions/',
+]
