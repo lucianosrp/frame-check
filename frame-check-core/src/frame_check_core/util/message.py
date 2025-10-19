@@ -9,7 +9,7 @@ def print_diagnostics(fc: "FrameChecker", path: str, file=None) -> None:
     """Print formatted diagnostics to stdout or a specified file."""
     if not fc.diagnostics:
         return
-    
+
     lines = fc.source.splitlines() if fc.source else []
 
     for diag in fc.diagnostics:
