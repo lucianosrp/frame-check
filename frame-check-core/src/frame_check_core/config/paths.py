@@ -1,3 +1,5 @@
+from collections.abc import Callable
+import glob
 from pathlib import Path
 
 
@@ -210,3 +212,20 @@ def matches_exact_path(pattern: str, rel_str: str, rel_path: Path) -> bool:
         return True
 
     return False
+
+def matching_files(path: Path, recursive: bool, should_exclude: Callable[[Path], bool]) -> Path:
+    collected_files: set[Path] = set()
+
+    path = Path(path_str)
+
+    if path.is_file() and path.suffix == ".py":
+        collected_files.add(path.resolve())
+    elif path.is_dir():
+        # Recursively find all .py files in the directory
+        collected_files.update(path.rglob("*.py"))
+    else:
+        # treat as a glob pattern
+        for matched_path in glob.glob(path_str, recursive=True):
+            matched = Path(matched_path)
+            if matched.is_file() and matched.suffix == ".py":
+                collected_files.add(matched.resolve())

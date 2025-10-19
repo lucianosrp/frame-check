@@ -1,7 +1,7 @@
 # Frame Check Core
 
 The core static analysis engine for frame-check that tracks pandas DataFrame schemas through Python AST.
-`
+
 ## Architecture
 
 ### Core Classes
@@ -45,9 +45,9 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 
 ---
 
-# Pandas DataFrame Column Assignment and Removal Methods
+## Pandas DataFrame Column Assignment and Removal Methods
 
-## Column Assignment Methods
+### Column Assignment Methods
 
 | ID | Method | Syntax | Example | Notes |
 |----|--------|--------|---------|-------|
@@ -77,7 +77,7 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 | <a id="CAM-24"></a>#CAM-24 | **From pd.get_dummies** | `df = pd.get_dummies(df, columns=['A'])` | One-hot encoding | Creates multiple columns |
 | <a id="CAM-25"></a>#CAM-25 | **Update method** | `df.update(other_df)` | `df.update(df2[['A']])` | Updates existing columns |
 
-## Column Removal Methods
+### Column Removal Methods
 
 | ID | Method | Syntax | Example | Notes |
 |----|--------|--------|---------|-------|
@@ -95,7 +95,7 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 | <a id="CRM-12"></a>#CRM-12 | **drop_duplicates** | Can remove columns implicitly | If transposed | Edge case |
 | <a id="CRM-13"></a>#CRM-13 | **Reindex** | `df = df.reindex(columns=['A','B'])` | Specify kept columns | Indirect removal |
 
-## Edge Cases and Special Considerations
+### Edge Cases and Special Considerations
 
 | ID | Scenario | Example | Impact on Columns |
 |----|----------|---------|-------------------|
@@ -122,9 +122,7 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 8. **SQL queries**: `pd.read_sql()` columns depend on query
 9. **Copy vs view**: Some operations create views that share column structure
 
-
-
-#### DataFrame Creation Support Matrix
+## DataFrame Creation Support Matrix
 
 The following table shows various ways to create pandas DataFrames and their current support status in frame-check:
 
@@ -148,8 +146,7 @@ The following table shows various ways to create pandas DataFrames and their cur
 | <a id="DCMS-16"></a>#DCMS-16 | **From Dict** | `pd.DataFrame.from_dict({'col1': [1, 2], 'col2': [3, 4]})` | ❌ | Not yet implemented |
 
 **Legend:**
+
 - ✅ Fully supported
 - 🟡 Partially supported
 - ❌ Not yet implemented
-
-
