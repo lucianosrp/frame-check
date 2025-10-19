@@ -1,16 +1,17 @@
 import ast
 from dataclasses import dataclass, field
 from typing import NamedTuple
+from .region import CodeRegion
 
 
 @dataclass(kw_only=True)
 class FrameInstance:
     _node: ast.Assign | ast.Call
-    lineno: int
+    region: CodeRegion
     id: str
     data_arg: ast.List | ast.Dict | None
     keywords: list[ast.keyword]
-    data_source_lineno: int | None = None
+    data_src_region: CodeRegion | None = None
     _columns: set[str] = field(default_factory=set)
 
     def add_columns(self, *columns: str):
@@ -36,11 +37,9 @@ class FrameInstance:
 @dataclass(kw_only=True)
 class ColumnInstance:
     _node: ast.Subscript
-    lineno: int
     id: str
+    region: CodeRegion
     frame: FrameInstance
-    start_col: int
-    underline_length: int
 
 
 class LineIdKey(NamedTuple):
@@ -53,7 +52,7 @@ class InstanceHistory[I: FrameInstance | ColumnInstance]:
     instances: dict[LineIdKey, I] = field(default_factory=dict)
 
     def add(self, instance: I):
-        key = LineIdKey(instance.lineno, instance.id)
+        key = LineIdKey(instance.region.start.row, instance.id)
         self.instances[key] = instance
 
     def get(self, id: str | None) -> list[I]:

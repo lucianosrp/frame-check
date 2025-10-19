@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from frame_check_core import FrameChecker
+from frame_check_core.models.region import CodePosition, CodeRegion
 
 CSV_TEST_FILE = Path(__file__) / "data" / "csv_file.csv"
 
@@ -23,7 +24,15 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == CodeRegion(
+        start=CodePosition(row=4, col=0),
+        end=CodePosition(row=4, col=1),
+    )
+    assert frame_instance.data_src_region is not None
+    assert frame_instance.data_src_region == CodeRegion(
+        start=CodePosition(row=4, col=5),
+        end=CodePosition(row=4, col=135),
+    )
 
 
 @pytest.mark.xfail(reason="FrameInstance to be refactored")
@@ -44,8 +53,14 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=cols)
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.lineno == 4
-    assert frame_instance.data_source_lineno == 3
+    assert frame_instance.region == CodeRegion(
+        start=CodePosition(row=4, col=0),
+        end=CodePosition(row=4, col=1),
+    )
+    assert frame_instance.data_src_region == CodeRegion(
+        start=CodePosition(row=4, col=5),
+        end=CodePosition(row=4, col=20),
+    )
 
 
 def test_read_csv_no_usecols():
@@ -70,4 +85,12 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=[a, 'b', 'c'])
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == CodeRegion(
+        start=CodePosition(row=4, col=0),
+        end=CodePosition(row=4, col=1),
+    )
+    assert frame_instance.data_src_region is not None
+    assert frame_instance.data_src_region == CodeRegion(
+        start=CodePosition(row=4, col=5),
+        end=CodePosition(row=4, col=133),
+    )
