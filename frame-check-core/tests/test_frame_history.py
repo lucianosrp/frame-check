@@ -12,7 +12,7 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 
     fc = FrameChecker.check(code)
 
-    assert fc.frames.instance_ids() == ["df"]
+    assert fc.frames.instance_ids() == {"df"}
     assert list(fc.frames.instances.keys()) == [LineIdKey(4, "df")]
 
 
@@ -27,7 +27,7 @@ df = df[["a"]]
 
     fc = FrameChecker.check(code)
 
-    assert fc.frames.instance_ids() == ["df"]
+    assert fc.frames.instance_ids() == {"df"}
     assert list(fc.frames.instances.keys()) == [
         LineIdKey(4, "df"),
         LineIdKey(5, "df"),
