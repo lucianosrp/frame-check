@@ -130,7 +130,7 @@ Each component should then have a README.md file with instructions on how to run
 | <a id="#CAM-1"></a>#CAM-1       | Direct column assignment    | df["c"] = [7, 8, 9]                                              | ✅          |
 | <a id="#CAM-10"></a>#CAM-10     | Set Item with list          | df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]]                       | ✅          |
 | <a id="#CAM-7"></a>#CAM-7       | df.assign                   | df.assign(A=[1, 2, 3])                                           | ❌          |
-| <a id="#CAM-7-1"></a>#CAM-7-1   | df.assign + subscript       | df.assign(A=[1, 2, 3])['A']                                      | ✅          |
+| <a id="#CAM-7-1"></a>#CAM-7-1   | df.assign + subscript       | df.assign(A=[1, 2, 3])['A']                                      | ❌          |
 | <a id="#CAM-7-2"></a>#CAM-7-2   | df.assign chaining          | df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])                       | ❌          |
 | <a id="#CAM-9"></a>#CAM-9       | df.insert                   | df.insert(0, "A", [1, 2, 3])                                     | ✅          |
 | <a id="#DCMS-6"></a>#DCMS-6     | read_csv + usecols inline   | df = pd.read_csv('file.csv', usecols=['a', 'b', 'c'])            | ✅          |

@@ -14,7 +14,7 @@ df["A"]
 """
     fc = FrameChecker.check(code)
     df = fc.frames.get("df")[-1]
-    assert df.columns == ["A"]
+    assert df.columns == frozenset({"A"})
     assert len(fc.diagnostics) == 0
 
 
@@ -29,7 +29,7 @@ df["A"]
 """
     fc = FrameChecker.check(code)
     df = fc.frames.get("df")[-1]
-    assert df.columns == ["A"]
+    assert df.columns == frozenset({"A"})
     assert len(fc.diagnostics) == 0
 
 
@@ -45,7 +45,7 @@ df.assign(A=[1, 2, 3])["A"]
 """
     fc = FrameChecker.check(code)
     df = fc.frames.get("df")[-1]
-    assert df.columns == ["A"]
+    assert df.columns == frozenset({"A"})
     assert len(fc.diagnostics) == 0
 
 
@@ -65,5 +65,5 @@ df["B"]
 """
     fc = FrameChecker.check(code)
     df = fc.frames.get("df")[-1]
-    assert df.columns == ["A", "B"]
+    assert df.columns == frozenset({"A", "B"})
     assert len(fc.diagnostics) == 0

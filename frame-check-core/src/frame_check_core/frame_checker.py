@@ -4,14 +4,15 @@ from pathlib import Path
 from typing import Self, override
 
 from .ast.models import (
+    DF,
+    PD,
     Result,
+    get_result,
     is_assigning,
     set_assigning,
-    get_result,
     set_result,
 )
-from .ast.models import PD, DF
-from .util.col_similarity import zero_deps_jaro_winkler
+from .models.diagnostic import Diagnostic, Severity
 from .models.history import (
     ColumnHistory,
     ColumnInstance,
@@ -19,7 +20,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
-from .models.diagnostic import Diagnostic, Severity
+from .util.col_similarity import zero_deps_jaro_winkler
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -80,21 +81,12 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
-                if access.frame.data_source_lineno is not None:
-                    data_line += (
-                        f" from data defined at line {access.frame.data_source_lineno}"
-                    )
+                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_lino}"
                 data_line += " with columns:"
                 hints = [data_line]
+
                 for col in sorted(access.frame.columns):
                     hints.append(f"  • {col}")
-                definition_location = (access.frame.lineno, 0)
-                data_source_location = (
-                    (access.frame.data_source_lineno, 0)
-                    if access.frame.data_source_lineno is not None
-                    else None
-                )
                 message = f"Column '{access.id}' does not exist"
                 similar_col = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 if similar_col:
@@ -109,8 +101,7 @@ class FrameChecker(ast.NodeVisitor):
                     location=(access.lineno, access.start_col),
                     underline_length=access.underline_length,
                     hint=hints,
-                    definition_location=definition_location,
-                    data_source_location=data_source_location,
+                    definition_location=(access.frame.defined_lino, 0),
                 )
                 self.diagnostics.append(diagnostic)
 
@@ -162,14 +153,12 @@ class FrameChecker(ast.NodeVisitor):
         if error is not None:
             pass  # TODO
         if created is not None:
-            new_frame = FrameInstance(
-                _node=node,
+            new_frame = FrameInstance.new(
                 lineno=node.lineno,
                 id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
                 data_arg=None,
                 keywords=[],
-                data_source_lineno=node.lineno,
-                _columns=created.columns,
+                columns=created.columns,
             )
             self.frames.add(new_frame)
 
@@ -196,22 +185,10 @@ class FrameChecker(ast.NodeVisitor):
                 last_frame = self.frames.get_before(node.lineno, df_name)
                 if last_frame:
                     # New column assignment to existing DataFrame
-                    new_frame = FrameInstance(
-                        _node=node,
-                        lineno=node.lineno,
-                        id=last_frame.id,
-                        data_arg=last_frame.data_arg,
-                        keywords=last_frame.keywords,
-                        _columns=set(last_frame._columns),
+                    subscript_slice: ast.expr = subscript.slice
+                    new_frame = last_frame.new_instance(
+                        lineno=node.lineno, new_columns=subscript_slice
                     )
-                    subscript_slice = subscript.slice
-
-                    match subscript_slice:
-                        case ast.Constant():
-                            new_frame.add_column_constant(subscript_slice)
-                        case ast.List():
-                            new_frame.add_column_list(subscript_slice)
-
                     self.frames.add(new_frame)
 
         self._maybe_create_df(node)
@@ -242,7 +219,7 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         frame_id = node.value.id
-        if frame_id not in self.frames.instance_keys():
+        if frame_id not in self.frames.instance_ids():
             return
 
         if not isinstance(const := node.slice, ast.Constant) or not isinstance(
@@ -297,14 +274,9 @@ class FrameChecker(ast.NodeVisitor):
                 pass
             if returned is not None:
                 set_result(node, returned)
-            if df.columns != updated.columns and frame_id is not None:
-                new_frame = FrameInstance(
-                    _node=node,
+            if df.columns != updated.columns and frame is not None:
+                new_frame = frame.new_instance(
                     lineno=node.lineno,
-                    id=frame_id,
-                    data_arg=None,
-                    keywords=[],
-                    data_source_lineno=None,
-                    _columns=updated.columns,
+                    new_columns=updated.columns,
                 )
                 self.frames.add(new_frame)
