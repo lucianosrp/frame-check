@@ -133,7 +133,7 @@ class LineIdKey(NamedTuple):
     id: str
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, slots=True)
 class InstanceHistory[I: FrameInstance | ColumnInstance]:
     instances: dict[LineIdKey, I] = field(default_factory=dict)
 
@@ -177,7 +177,7 @@ class InstanceHistory[I: FrameInstance | ColumnInstance]:
         return item in self.instances
 
     def contains_id(self, id: str) -> bool:
-        return any(instance.id == id for instance in self.instances.values())
+        return id in self.instance_ids()
 
 
 FrameHistory = InstanceHistory[FrameInstance]
