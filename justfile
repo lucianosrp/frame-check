@@ -10,3 +10,6 @@ docs *cmd="":
 
 lsp-code:
     cd frame-check-extensions/vscode && ./install-dev.sh
+
+type:
+    uv run mypy . --check-untyped-defs
