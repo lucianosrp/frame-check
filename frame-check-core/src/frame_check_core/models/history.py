@@ -5,7 +5,6 @@ from typing import NamedTuple
 
 @dataclass(kw_only=True)
 class FrameInstance:
-    _node: ast.Assign | ast.Call
     lineno: int
     id: str
     data_arg: ast.List | ast.Dict | None
@@ -69,8 +68,8 @@ class InstanceHistory[I: FrameInstance | ColumnInstance]:
                 return self.instances[key]
         return None
 
-    def instance_keys(self) -> list[str]:
-        return [instance.id for instance in self.instances.values()]
+    def instance_ids(self) -> set[str]:
+        return {instance.id for instance in self.instances.values()}
 
     def values(self) -> list[I]:
         return list(self.instances.values())

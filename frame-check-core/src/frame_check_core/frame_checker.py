@@ -4,14 +4,15 @@ from pathlib import Path
 from typing import Self, override
 
 from .ast.models import (
+    DF,
+    PD,
     Result,
+    get_result,
     is_assigning,
     set_assigning,
-    get_result,
     set_result,
 )
-from .ast.models import PD, DF
-from .util.col_similarity import zero_deps_jaro_winkler
+from .models.diagnostic import Diagnostic, Severity
 from .models.history import (
     ColumnHistory,
     ColumnInstance,
@@ -19,7 +20,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
-from .models.diagnostic import Diagnostic, Severity
+from .util.col_similarity import zero_deps_jaro_winkler
 
 
 class FrameChecker(ast.NodeVisitor):
@@ -163,7 +164,6 @@ class FrameChecker(ast.NodeVisitor):
             pass  # TODO
         if created is not None:
             new_frame = FrameInstance(
-                _node=node,
                 lineno=node.lineno,
                 id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
                 data_arg=None,
@@ -197,7 +197,6 @@ class FrameChecker(ast.NodeVisitor):
                 if last_frame:
                     # New column assignment to existing DataFrame
                     new_frame = FrameInstance(
-                        _node=node,
                         lineno=node.lineno,
                         id=last_frame.id,
                         data_arg=last_frame.data_arg,
@@ -242,7 +241,7 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         frame_id = node.value.id
-        if frame_id not in self.frames.instance_keys():
+        if frame_id not in self.frames.instance_ids():
             return
 
         if not isinstance(const := node.slice, ast.Constant) or not isinstance(
@@ -299,7 +298,6 @@ class FrameChecker(ast.NodeVisitor):
                 set_result(node, returned)
             if df.columns != updated.columns and frame_id is not None:
                 new_frame = FrameInstance(
-                    _node=node,
                     lineno=node.lineno,
                     id=frame_id,
                     data_arg=None,
