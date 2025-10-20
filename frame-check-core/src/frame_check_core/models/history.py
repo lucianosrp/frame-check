@@ -29,12 +29,37 @@ def get_column_values(
 
 @dataclass(kw_only=True, frozen=True, slots=True)
 class FrameInstance:
+    """
+    Represents an immutable instance of a data frame at a specific line number.
+
+    This class stores information about a data frame, including its source location,
+    identifier, data arguments, and columns.
+    """
+
     lineno: int
+    """
+    Line number where this frame instance appears
+    """
+
     id: str
-    data_arg: ast.List | ast.Dict | None
-    keywords: list[ast.keyword]
-    data_source_lineno: int | None = None
+    """
+    Identifier for the frame
+    """
+
+    data_arg: ast.List | ast.Dict | None = None
+    """
+    Data argument used in the frame
+    """
+
+    keywords: list[ast.keyword] = field(default_factory=list)
+    """
+    Keyword arguments for the frame
+    """
+
     columns: frozenset[str]
+    """
+    Set of column names in this frame
+    """
 
     @classmethod
     def new(
@@ -42,10 +67,23 @@ class FrameInstance:
         *,
         lineno: int,
         id: str,
-        data_arg: ast.List | ast.Dict | None,
-        keywords: list[ast.keyword],
+        data_arg: ast.List | ast.Dict | None = None,
+        keywords: list[ast.keyword] = field(default_factory=list),
         columns: Iterable[str] | ast.expr,
     ) -> "FrameInstance":
+        """
+        Create a new FrameInstance with the given parameters.
+
+        Args:
+            lineno: Line number where the frame appears
+            id: Identifier for the frame
+            data_arg: Data argument used in the frame
+            keywords: Keyword arguments for the frame
+            columns: Column names to include in the frame
+
+        Returns:
+            A new FrameInstance with the specified properties
+        """
         return cls(
             lineno=lineno,
             id=id,
@@ -60,11 +98,22 @@ class FrameInstance:
         lineno: int,
         new_columns: Iterable[str] | ast.expr,
     ) -> "FrameInstance":
+        """
+        Create a new FrameInstance based on the current instance with updated properties.
+
+        This method creates a new frame instance that inherits properties from the current
+        instance but with a new line number and additional columns.
+
+        Args:
+            lineno: New line number for the frame instance
+            new_columns: Additional columns to merge with existing columns
+
+        Returns:
+            A new FrameInstance with updated properties
+        """
         return FrameInstance(
             lineno=lineno,
             id=self.id,
-            data_arg=self.data_arg,
-            keywords=self.keywords,
             columns=self.columns.union(get_column_values(new_columns)),
         )
 

@@ -82,20 +82,11 @@ class FrameChecker(ast.NodeVisitor):
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
                 data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
-                if access.frame.data_source_lineno is not None:
-                    data_line += (
-                        f" from data defined at line {access.frame.data_source_lineno}"
-                    )
                 data_line += " with columns:"
                 hints = [data_line]
                 for col in sorted(access.frame.columns):
                     hints.append(f"  • {col}")
                 definition_location = (access.frame.lineno, 0)
-                data_source_location = (
-                    (access.frame.data_source_lineno, 0)
-                    if access.frame.data_source_lineno is not None
-                    else None
-                )
                 message = f"Column '{access.id}' does not exist"
                 similar_col = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 if similar_col:
@@ -111,7 +102,6 @@ class FrameChecker(ast.NodeVisitor):
                     underline_length=access.underline_length,
                     hint=hints,
                     definition_location=definition_location,
-                    data_source_location=data_source_location,
                 )
                 self.diagnostics.append(diagnostic)
 
