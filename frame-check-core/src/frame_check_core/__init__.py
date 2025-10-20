@@ -3,13 +3,10 @@ frame-check: A static column checker for dataframes!
 """
 
 import argparse
-from itertools import chain
-import glob
 from pathlib import Path
 import sys
-from typing import cast
 
-from .config import Config, matching_files
+from .config import Config, collect_python_files
 from .frame_checker import FrameChecker
 from .util.message import print_diagnostics
 
@@ -34,12 +31,6 @@ def create_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-v",
-        "--version",
-        action="version",
-        version="%(prog)s 0.1.0",
-    )
-    parser.add_argument(
         "--ignore",
         type=str,
         nargs="+",
@@ -57,63 +48,58 @@ def create_parser() -> argparse.ArgumentParser:
         "--config",
         "-c",
         type=Path,
-        help="Path to a configuration file (if not specified, configuration will be read frame-check.toml or pyproject.toml, if present)."
+        help="Path to a configuration file (if not specified, configuration will be read frame-check.toml or pyproject.toml, if present).",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s 0.1.0",
     )
 
     return parser
 
 
-def collect_python_files(paths: list[str], config: Config) -> list[Path]:
-    """Collect all Python files from the given paths.
-
-    Args:
-        paths: List of file paths, directory paths, or glob patterns.
-        config: Config object with exclusion patterns.
-
-    Returns:
-        List of Path objects for Python files to check.
-    """
-    collected_files = set(
-        chain.from_iterable(
-            matching_files(path, config.recursive, config.should_exclude)
-            for path in paths
-        )
-    )
-
-
-
-    # Filter out excluded files using fast prefix checking
-    result = sorted(f for f in collected_files if not config.should_exclude(f))
-    return result
-
-
-def main(argv: list[str] | None = None, config: Config | None = None) -> int:
+def main(
+    argv: list[str] | None = None, override_config: Config | None = None
+) -> int:
     """Main entry point for the CLI."""
     parser = create_parser()
     args = parser.parse_args(argv)
-
-    config = Config()  # Default configuration
-
-    if (frame_check_settings := Path.cwd() / "frame-check.toml").exists():
-        config = Config.load_from(frame_check_settings)
-
-    elif (pyproject_settings := Path.cwd() / "pyproject.toml").exists():
-        config = Config.load_from(pyproject_settings)
 
     if not args.files:
         parser.print_help(sys.stderr)
         return 0
 
-    if args.config:
-        try:
-            config = Config.load_from(args.config)
-        except Exception as e:
-            ...
+    if override_config is None:
+        config = Config()
 
-    if args.ignore:
-        cast(set, config.exclude).update(args.ignore)
+        if args.config:
+            try:
+                config = Config.load_from(args.config)
+            except Exception as e:
+                print(
+                    f"Error loading configuration from {args.config}:\n{e}",
+                    file=sys.stderr,
+                )
+                return 1
+        elif (frame_check_settings := Path.cwd() / "frame-check.toml").exists():
+            config = Config.load_from(frame_check_settings)
+        elif (pyproject_settings := Path.cwd() / "pyproject.toml").exists():
+            config = Config.load_from(pyproject_settings)
+        config.update(
+            exclude=args.ignore,
+            nonrecursive=args.nonrecursive,
+        )
+    else:
+        config = override_config
 
-    python_files = collect_python_files(args.files, config=config)
+    python_files = collect_python_files(
+        args.files,
+        exclusion_patterns=config.exclude,
+        recursive=config.recursive,
+    )
 
     if not python_files:
         print("No Python files found to check.", file=sys.stderr)
