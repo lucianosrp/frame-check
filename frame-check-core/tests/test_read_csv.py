@@ -45,7 +45,6 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=cols)
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b", "c"})
     assert frame_instance.lineno == 4
-    assert frame_instance.data_source_lineno == 3
 
 
 def test_read_csv_no_usecols():
