@@ -9,7 +9,7 @@ def get_column_values(
 ) -> Iterable[str]:
     match col:
         case str():
-            yield from [col]
+            yield col
         case ast.Constant():
             match col.value:
                 case str(value):
