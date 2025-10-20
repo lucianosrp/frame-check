@@ -12,7 +12,7 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b"]
+    assert frame_instance.columns == frozenset({"a", "b"})
     assert frame_instance.lineno == 4
 
 
@@ -27,7 +27,7 @@ df = pd.DataFrame([{"a": 1, "b": 4 }, {"a": 2, "b": 5 }, {"a": 3, "b": 6 }])
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b"]
+    assert frame_instance.columns == frozenset({"a", "b"})
     assert frame_instance.lineno == 4
 
 
@@ -43,5 +43,5 @@ df = pd.DataFrame(data)
     frame_instance = fc.frames.get_at(5, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b"]
+    assert frame_instance.columns == frozenset({"a", "b"})
     assert frame_instance.lineno == 5

@@ -163,13 +163,12 @@ class FrameChecker(ast.NodeVisitor):
         if error is not None:
             pass  # TODO
         if created is not None:
-            new_frame = FrameInstance(
+            new_frame = FrameInstance.new(
                 lineno=node.lineno,
                 id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
                 data_arg=None,
                 keywords=[],
-                data_source_lineno=node.lineno,
-                _columns=created.columns,
+                columns=created.columns,
             )
             self.frames.add(new_frame)
 
@@ -196,21 +195,10 @@ class FrameChecker(ast.NodeVisitor):
                 last_frame = self.frames.get_before(node.lineno, df_name)
                 if last_frame:
                     # New column assignment to existing DataFrame
-                    new_frame = FrameInstance(
-                        lineno=node.lineno,
-                        id=last_frame.id,
-                        data_arg=last_frame.data_arg,
-                        keywords=last_frame.keywords,
-                        _columns=set(last_frame._columns),
+                    subscript_slice: ast.expr = subscript.slice
+                    new_frame = last_frame.new_instance(
+                        lineno=node.lineno, new_columns=subscript_slice
                     )
-                    subscript_slice = subscript.slice
-
-                    match subscript_slice:
-                        case ast.Constant():
-                            new_frame.add_column_constant(subscript_slice)
-                        case ast.List():
-                            new_frame.add_column_list(subscript_slice)
-
                     self.frames.add(new_frame)
 
         self._maybe_create_df(node)
@@ -297,12 +285,11 @@ class FrameChecker(ast.NodeVisitor):
             if returned is not None:
                 set_result(node, returned)
             if df.columns != updated.columns and frame_id is not None:
-                new_frame = FrameInstance(
+                new_frame = FrameInstance.new(
                     lineno=node.lineno,
                     id=frame_id,
                     data_arg=None,
                     keywords=[],
-                    data_source_lineno=None,
-                    _columns=updated.columns,
+                    columns=updated.columns,
                 )
                 self.frames.add(new_frame)

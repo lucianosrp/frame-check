@@ -1,36 +1,72 @@
 import ast
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import NamedTuple
 
 
-@dataclass(kw_only=True)
+def get_column_values(
+    col: str | ast.expr | Iterable[str],
+) -> Iterable[str]:
+    match col:
+        case str():
+            yield from [col]
+        case ast.Constant():
+            match col.value:
+                case str(value):
+                    yield value
+        case ast.List():
+            for elt_node in col.elts:
+                match elt_node:
+                    case ast.Constant():
+                        yield from get_column_values(elt_node)
+                    case ast.List():
+                        yield from get_column_values(elt_node)
+        case Iterable():
+            yield from col
+        case _:
+            yield from []
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
 class FrameInstance:
     lineno: int
     id: str
     data_arg: ast.List | ast.Dict | None
     keywords: list[ast.keyword]
     data_source_lineno: int | None = None
-    _columns: set[str] = field(default_factory=set)
+    columns: frozenset[str]
 
-    def add_columns(self, *columns: str):
-        _cols_str = list(filter(None, columns))
-        self._columns.update(_cols_str)
+    @classmethod
+    def new(
+        cls,
+        *,
+        lineno: int,
+        id: str,
+        data_arg: ast.List | ast.Dict | None,
+        keywords: list[ast.keyword],
+        columns: Iterable[str] | ast.expr,
+    ) -> "FrameInstance":
+        return cls(
+            lineno=lineno,
+            id=id,
+            data_arg=data_arg,
+            keywords=keywords,
+            columns=frozenset(get_column_values(columns)),
+        )
 
-    def add_column_constant(self, constant_node: ast.Constant):
-        match constant_node.value:
-            case str(col_name):
-                self.add_columns(col_name)
-
-    def add_column_list(self, list_node: ast.List):
-        for elt_node in list_node.elts:
-            match elt_node:
-                case ast.Constant():
-                    self.add_column_constant(elt_node)
-
-    @cached_property
-    def columns(self) -> list[str]:
-        return sorted(self._columns)
+    def new_instance(
+        self,
+        *,
+        lineno: int,
+        new_columns: Iterable[str] | ast.expr,
+    ) -> "FrameInstance":
+        return FrameInstance(
+            lineno=lineno,
+            id=self.id,
+            data_arg=self.data_arg,
+            keywords=self.keywords,
+            columns=self.columns.union(get_column_values(new_columns)),
+        )
 
 
 @dataclass(kw_only=True)
