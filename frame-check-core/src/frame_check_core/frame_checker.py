@@ -81,12 +81,12 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
+                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_lino}"
                 data_line += " with columns:"
                 hints = [data_line]
+
                 for col in sorted(access.frame.columns):
                     hints.append(f"  • {col}")
-                definition_location = (access.frame.lineno, 0)
                 message = f"Column '{access.id}' does not exist"
                 similar_col = zero_deps_jaro_winkler(access.id, access.frame.columns)
                 if similar_col:
@@ -101,7 +101,7 @@ class FrameChecker(ast.NodeVisitor):
                     location=(access.lineno, access.start_col),
                     underline_length=access.underline_length,
                     hint=hints,
-                    definition_location=definition_location,
+                    definition_location=(access.frame.defined_lino, 0),
                 )
                 self.diagnostics.append(diagnostic)
 
@@ -274,12 +274,9 @@ class FrameChecker(ast.NodeVisitor):
                 pass
             if returned is not None:
                 set_result(node, returned)
-            if df.columns != updated.columns and frame_id is not None:
-                new_frame = FrameInstance.new(
+            if df.columns != updated.columns and frame is not None:
+                new_frame = frame.new_instance(
                     lineno=node.lineno,
-                    id=frame_id,
-                    data_arg=None,
-                    keywords=[],
-                    columns=updated.columns,
+                    new_columns=updated.columns,
                 )
                 self.frames.add(new_frame)

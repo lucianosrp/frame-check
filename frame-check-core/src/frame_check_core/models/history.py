@@ -41,6 +41,11 @@ class FrameInstance:
     Line number where this frame instance appears
     """
 
+    defined_lino: int
+    """
+    Line number where this frame instance is first defined
+    """
+
     id: str
     """
     Identifier for the frame
@@ -90,6 +95,7 @@ class FrameInstance:
             data_arg=data_arg,
             keywords=keywords,
             columns=frozenset(get_column_values(columns)),
+            defined_lino=lineno,
         )
 
     def new_instance(
@@ -115,6 +121,7 @@ class FrameInstance:
             lineno=lineno,
             id=self.id,
             columns=self.columns.union(get_column_values(new_columns)),
+            defined_lino=self.defined_lino,
         )
 
 
