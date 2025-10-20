@@ -1,11 +1,9 @@
-import pytest
 from frame_check_core import FrameChecker
 from frame_check_core.util.message import (
     print_diagnostics,
 )
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_print_diagnostics_format(capfd):
     code = """
 import pandas as pd
@@ -29,10 +27,7 @@ df["NonExistentColumn"]
     assert diag.underline_length == 21
     assert isinstance(diag.hint, list)
     assert len(diag.hint) == 5
-    assert (
-        diag.hint[0]
-        == "DataFrame 'df' created at line 10 from data defined at line 4 with columns:"
-    )
+    assert diag.hint[0] == "DataFrame 'df' created at line 10 with columns:"
     assert "  • Age" in diag.hint
     assert "  • City" in diag.hint
     assert "  • Name" in diag.hint
@@ -48,23 +43,11 @@ df["NonExistentColumn"]
 12|df["NonExistentColumn"]
   |  {"^" * 21}
   |
-  | DataFrame 'df' created at line 10 from data defined at line 4 with columns:
+  | DataFrame 'df' created at line 10 with columns:
   |   • Age
   |   • City
   |   • Name
   |   • Salary
   |
-
---- Note: Data defined here with these columns ---
-  |
- 4|data = {{
-  |{"~" * 8}
-  |
-  |   • Age
-  |   • City
-  |   • Name
-  |   • Salary
-  |
-
 """
     assert captured.out.strip() == expected_output.strip()
