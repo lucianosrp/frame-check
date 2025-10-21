@@ -149,7 +149,19 @@ class FrameChecker(ast.NodeVisitor):
         method = PD.get_method(func.attr)
         if method is None:
             return
-        created, error = method(node.value.args, node.value.keywords)
+        arg_indices = None
+        keyword_names = None
+        if func.attr == "DataFrame":
+            arg_indices = {0}
+            keyword_names = {"data"}
+        elif func.attr == "read_csv":
+            keyword_names = {"usecols"}
+        created, error = method(
+            node.value.args,
+            node.value.keywords,
+            arg_indices=arg_indices,
+            keyword_names=keyword_names,
+        )
         if error is not None:
             pass  # TODO
         if created is not None:
@@ -168,7 +180,8 @@ class FrameChecker(ast.NodeVisitor):
             if isinstance(target, ast.Subscript):
                 set_assigning(target)
 
-        self.generic_visit(node)
+        # Only visit the value expression to compute results, avoid walking targets
+        self.visit(node.value)
 
         for target in node.targets:
             if isinstance(target, ast.Name):
@@ -195,7 +208,7 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Import(self, node: ast.Import):
-        self.generic_visit(node)
+        # No need to traverse children for imports
         for alias in node.names:
             if alias.name == "pandas":
                 # Use asname if available, otherwise use the module name
@@ -203,13 +216,13 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Name(self, node):
-        self.generic_visit(node)
+        # Name has no children; skip generic traversal
         if node.id in self.definitions:
             set_result(node, self.definitions[node.id])
 
     @override
     def visit_Subscript(self, node: ast.Subscript):
-        self.generic_visit(node)
+        # Avoid generic traversal; we only need top-level info
 
         # ignore subscript if it is a column assignment
         if is_assigning(node):
@@ -219,7 +232,7 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         frame_id = node.value.id
-        if frame_id not in self.frames.instance_ids():
+        if not self.frames.contains_id(frame_id):
             return
 
         if not isinstance(const := node.slice, ast.Constant) or not isinstance(
@@ -244,7 +257,11 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Call(self, node: ast.Call):
-        self.generic_visit(node)
+        # Only visit inner call (for chained calls) to compute intermediate DF results
+        if isinstance(node.func, ast.Attribute) and isinstance(
+            node.func.value, ast.Call
+        ):
+            self.visit(node.func.value)
 
         if isinstance(node.func, ast.Attribute):
             frame_id = None
@@ -268,7 +285,27 @@ class FrameChecker(ast.NodeVisitor):
             if method is None:
                 return
 
-            updated, returned, error = method(node.args, node.keywords)
+            arg_indices = None
+            keyword_names = None
+            match node.func.attr:
+                case "rename":
+                    keyword_names = {"columns"}
+                case "drop":
+                    keyword_names = {"columns"}
+                case "dropna":
+                    keyword_names = {"subset"}
+                case "fillna":
+                    keyword_names = {"value"}
+                case "astype":
+                    keyword_names = {"dtype"}
+                case _:
+                    pass
+            updated, returned, error = method(
+                node.args,
+                node.keywords,
+                arg_indices=arg_indices,
+                keyword_names=keyword_names,
+            )
             if error is not None:
                 # self.column_accesses[LineIdKey(node.lineno, "")] = error
                 pass
