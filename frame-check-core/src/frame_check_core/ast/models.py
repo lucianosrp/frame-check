@@ -104,7 +104,9 @@ def parse_args(
         ]
 
     if keyword_names is None:
-        keywordsv = {kw.arg: get_result(kw.value) for kw in keywords if kw.arg is not None}
+        keywordsv = {
+            kw.arg: get_result(kw.value) for kw in keywords if kw.arg is not None
+        }
     else:
         keywordsv = {
             kw.arg: get_result(kw.value)
