@@ -245,11 +245,16 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Call(self, node: ast.Call):
-        # Only visit inner call (for chained calls) to compute intermediate DF results
+        # Visit inner call for chains and visit argument expressions so results are available
         if isinstance(node.func, ast.Attribute) and isinstance(
             node.func.value, ast.Call
         ):
             self.visit(node.func.value)
+        # Ensure arguments and keyword values are visited so Name results are resolved for parse_args
+        for arg in node.args:
+            self.visit(arg)
+        for kw in node.keywords:
+            self.visit(kw.value)
 
         if isinstance(node.func, ast.Attribute):
             frame_id = None
