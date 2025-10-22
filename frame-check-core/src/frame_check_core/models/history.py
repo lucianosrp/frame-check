@@ -161,7 +161,7 @@ class InstanceHistory[I: FrameInstance | ColumnInstance]:
         if id is None:
             return []
         lines = self._by_id_lines.get(id, [])
-        return [self.instances[LineIdKey(l, id)] for l in lines]
+        return [self.instances[LineIdKey(line, id)] for line in lines]
 
     def get_at(self, lineno: int, id: str) -> I | None:
         return self.instances.get(LineIdKey(lineno, id))
