@@ -149,19 +149,7 @@ class FrameChecker(ast.NodeVisitor):
         method = PD.get_method(func.attr)
         if method is None:
             return
-        arg_indices = None
-        keyword_names = None
-        if func.attr == "DataFrame":
-            arg_indices = {0}
-            keyword_names = {"data"}
-        elif func.attr == "read_csv":
-            keyword_names = {"usecols"}
-        created, error = method(
-            node.value.args,
-            node.value.keywords,
-            arg_indices=arg_indices,
-            keyword_names=keyword_names,
-        )
+        created, error = method(node.value.args, node.value.keywords)
         if error is not None:
             pass  # TODO
         if created is not None:
@@ -285,27 +273,7 @@ class FrameChecker(ast.NodeVisitor):
             if method is None:
                 return
 
-            arg_indices = None
-            keyword_names = None
-            match node.func.attr:
-                case "rename":
-                    keyword_names = {"columns"}
-                case "drop":
-                    keyword_names = {"columns"}
-                case "dropna":
-                    keyword_names = {"subset"}
-                case "fillna":
-                    keyword_names = {"value"}
-                case "astype":
-                    keyword_names = {"dtype"}
-                case _:
-                    pass
-            updated, returned, error = method(
-                node.args,
-                node.keywords,
-                arg_indices=arg_indices,
-                keyword_names=keyword_names,
-            )
+            updated, returned, error = method(node.args, node.keywords)
             if error is not None:
                 # self.column_accesses[LineIdKey(node.lineno, "")] = error
                 pass

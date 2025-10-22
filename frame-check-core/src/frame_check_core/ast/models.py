@@ -92,7 +92,7 @@ def parse_args(
     arg_indices: set[int] | None = None,
     keyword_names: set[str] | None = None,
 ) -> tuple[list[Result], dict[str, Result]]:
-    # Targeted parsing to avoid unnecessary work:
+    # Targeted parsing to optionally limit work:
     # - If arg_indices is provided, only parse those positional args; others become Unknown
     # - If keyword_names is provided, only parse those keywords; others are skipped
     if arg_indices is None:
@@ -104,9 +104,7 @@ def parse_args(
         ]
 
     if keyword_names is None:
-        keywordsv = {
-            kw.arg: get_result(kw.value) for kw in keywords if kw.arg is not None
-        }
+        keywordsv = {kw.arg: get_result(kw.value) for kw in keywords if kw.arg is not None}
     else:
         keywordsv = {
             kw.arg: get_result(kw.value)
