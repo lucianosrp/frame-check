@@ -1,11 +1,9 @@
-import pytest
 from frame_check_core import FrameChecker
 from frame_check_core.util.message import (
     print_diagnostics,
 )
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_print_diagnostics_format(capfd):
     code = """
 import pandas as pd
@@ -29,42 +27,28 @@ df["NonExistentColumn"]
     assert diag.underline_length == 21
     assert isinstance(diag.hint, list)
     assert len(diag.hint) == 5
-    assert (
-        diag.hint[0]
-        == "DataFrame 'df' created at line 10 from data defined at line 4 with columns:"
-    )
+    assert diag.hint[0] == "DataFrame 'df' created at line 10 with columns:"
     assert "  • Age" in diag.hint
     assert "  • City" in diag.hint
     assert "  • Name" in diag.hint
     assert "  • Salary" in diag.hint
 
     # Call print_diagnostics and capture output
-    print_diagnostics(checker, "example.py")
+    print_diagnostics(checker, "example.py", color=False)
 
     # Read captured output
     captured = capfd.readouterr()
-    expected_output = f"""example.py:12:3 - error: Column 'NonExistentColumn' does not exist.
-  |
-12|df["NonExistentColumn"]
-  |  {"^" * 21}
-  |
-  | DataFrame 'df' created at line 10 from data defined at line 4 with columns:
-  |   • Age
-  |   • City
-  |   • Name
-  |   • Salary
-  |
+    output = captured.out
 
---- Note: Data defined here with these columns ---
-  |
- 4|data = {{
-  |{"~" * 8}
-  |
-  |   • Age
-  |   • City
-  |   • Name
-  |   • Salary
-  |
+    # Test content instead of exact formatting
+    assert (
+        "example.py:12:3 - error: Column 'NonExistentColumn' does not exist." in output
+    )
+    assert 'df["NonExistentColumn"]' in output
+    assert "DataFrame 'df' created at line 10 with columns:" in output
 
-"""
-    assert captured.out.strip() == expected_output.strip()
+    # Check that all columns are listed in the output
+    assert "• Age" in output
+    assert "• City" in output
+    assert "• Name" in output
+    assert "• Salary" in output

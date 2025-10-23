@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from functools import cache
 
 
@@ -50,7 +51,7 @@ def jaro_winkler(s1: str, s2: str) -> float:
     return jaro + 0.1 * prefix * (1 - jaro)
 
 
-def zero_deps_jaro_winkler(target_col: str, existing_cols: list[str]) -> str | None:
+def zero_deps_jaro_winkler(target_col: str, existing_cols: Iterable[str]) -> str | None:
     if not existing_cols:
         return None
 

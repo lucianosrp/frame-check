@@ -44,7 +44,6 @@ df["NonExistentColumn"]
     ]
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_in_df():
     # best similarity = 0.585 (<= 0.9)
 
@@ -85,7 +84,6 @@ df["NonExistentColumn"]
     ]
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_multi_col_access():
     # similarity = 0.585 (<= 0.9)
     code = """
@@ -133,7 +131,6 @@ df["NonExistentColumn"]
     ]
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_col_access_before_assignment():
     code = """
 import pandas as pd
@@ -169,7 +166,6 @@ df["NameLower"] = df["Name"].str.lower()
     ]
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_with_col_recommendation_for_similarity_above90percents():
     code = """
 import pandas as pd
@@ -198,13 +194,13 @@ df["EmpolyeeName"]
             location=(15, 2),
             underline_length=16,
             hint=[
-                "DataFrame 'df' created at line 13 from data defined at line 5 with columns:",
+                "DataFrame 'df' created at line 13 with columns:",
                 "  • dept",
                 "  • employee_id",
                 "  • employee_name",
                 "  • paygrade",
             ],
             definition_location=(13, 0),
-            data_source_location=(5, 0),
+            data_source_location=None,
         )
     ]

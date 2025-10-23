@@ -19,20 +19,12 @@ import pandas as pd
 df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
 """
     fc = FrameChecker.check(code)
-    assert fc.frames.instance_keys() == ["df"]
+    assert fc.frames.instance_ids() == {"df"}
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.region == CodeRegion(
-        start=CodePosition(row=4, col=0),
-        end=CodePosition(row=4, col=1),
-    )
-    assert frame_instance.data_src_region is not None
-    assert frame_instance.data_src_region == CodeRegion(
-        start=CodePosition(row=4, col=5),
-        end=CodePosition(row=4, col=135),
-    )
+    assert frame_instance.columns == frozenset({"a", "b", "c"})
+    assert frame_instance.lineno == 4
 
 
 @pytest.mark.xfail(reason="FrameInstance to be refactored")
@@ -48,19 +40,12 @@ cols = ['a', 'b', 'c']
 df = pd.read_csv("{CSV_TEST_FILE}", usecols=cols)
 """
     fc = FrameChecker.check(code)
-    assert fc.frames.instance_keys() == ["df"]
+    assert fc.frames.instance_ids() == ["df"]
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.region == CodeRegion(
-        start=CodePosition(row=4, col=0),
-        end=CodePosition(row=4, col=1),
-    )
-    assert frame_instance.data_src_region == CodeRegion(
-        start=CodePosition(row=4, col=5),
-        end=CodePosition(row=4, col=20),
-    )
+    assert frame_instance.columns == frozenset({"a", "b", "c"})
+    assert frame_instance.lineno == 4
 
 
 def test_read_csv_no_usecols():
@@ -70,7 +55,7 @@ import pandas as pd
 df = pd.read_csv("{CSV_TEST_FILE}")
 """
     fc = FrameChecker.check(code)
-    assert fc.frames.instance_keys() == []
+    assert fc.frames.instance_ids() == set()
 
 
 def test_read_csv_usecols_with_var():
@@ -80,17 +65,9 @@ a = 'a'
 df = pd.read_csv("{CSV_TEST_FILE}", usecols=[a, 'b', 'c'])
 """
     fc = FrameChecker.check(code)
-    assert fc.frames.instance_keys() == ["df"]
+    assert fc.frames.instance_ids() == {"df"}
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
-    assert frame_instance.columns == ["a", "b", "c"]
-    assert frame_instance.region == CodeRegion(
-        start=CodePosition(row=4, col=0),
-        end=CodePosition(row=4, col=1),
-    )
-    assert frame_instance.data_src_region is not None
-    assert frame_instance.data_src_region == CodeRegion(
-        start=CodePosition(row=4, col=5),
-        end=CodePosition(row=4, col=133),
-    )
+    assert frame_instance.columns == frozenset({"a", "b", "c"})
+    assert frame_instance.lineno == 4

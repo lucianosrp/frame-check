@@ -5,7 +5,29 @@ if TYPE_CHECKING:
     from ..models.diagnostic import Diagnostic
 
 
-def print_diagnostics(fc: "FrameChecker", path: str, file=None) -> None:
+# Terminal colors and formatting
+BOLD = "\033[1m"
+RED = "\033[31m"
+YELLOW = "\033[33m"
+RESET = "\033[0m"
+
+# String constants for formatting
+GUTTER_CHAR = "│"
+ERROR_VALUE = "error"
+LINE_NOT_AVAILABLE = "<line not available>"
+CARET = "^"
+TILDE = "~"
+SPACE = " "
+DATA_SOURCE_NOTE = "--- Note: Data defined here with these columns ---"
+LOCATION_FORMAT = "{path}:{line_num}:{col_num} - {severity}: {message}"
+ERROR_LINE_FORMAT = "{line_num:>{width}} {gutter} {content}"
+UNDERLINE_FORMAT = "{spaces:>{width}} {gutter} {indent}{color}{underline}{reset}"
+HINT_LINE_FORMAT = "{spaces:>{width}} {gutter}  {hint_line}"
+
+
+def print_diagnostics(
+    fc: "FrameChecker", path: str, file=None, color: bool = True
+) -> None:
     """Print formatted diagnostics to stdout or a specified file."""
     if not fc.diagnostics:
         return
@@ -19,9 +41,15 @@ def print_diagnostics(fc: "FrameChecker", path: str, file=None) -> None:
             max_line_num = max(max_line_num, diag.data_source_location[0])
         line_width = len(str(max_line_num))
 
-        _print_error_header(diag, path, line_width, file=file)
+        _print_error_header(diag, path, line_width, file=file, color=color)
         _print_code_line(
-            diag.location, lines, diag.underline_length, "^", line_width, file=file
+            diag.location,
+            lines,
+            diag.underline_length,
+            CARET,
+            line_width,
+            file=file,
+            color=color,
         )
         _print_hints(diag.hint, line_width, file=file)
 
@@ -30,13 +58,27 @@ def print_diagnostics(fc: "FrameChecker", path: str, file=None) -> None:
 
 
 def _print_error_header(
-    diag: "Diagnostic", path: str, line_width: int, file=None
+    diag: "Diagnostic", path: str, line_width: int, file=None, color: bool = True
 ) -> None:
     """Print the error header line with file path and message."""
     line_num, col_num = diag.location
-    print(
-        f"{path}:{line_num}:{col_num + 1} - {diag.severity}: {diag.message}", file=file
+    if color:
+        diag_color = RED if diag.severity.value == ERROR_VALUE else YELLOW
+    else:
+        diag_color = ""
+    location_string = LOCATION_FORMAT.format(
+        path=path,
+        line_num=line_num,
+        col_num=col_num + 1,
+        severity=diag.severity,
+        message=diag.message,
     )
+    print(
+        f"{BOLD if color else ''}{diag_color}{location_string}{RESET if color else ''}",
+        file=file,
+    )
+    underline = "───" + "┬" + "─" * (len(location_string) - 4)
+    print(underline)
     _print_gutter(line_width, file=file)
 
 
@@ -47,6 +89,7 @@ def _print_code_line(
     underline_char: str,
     line_width: int,
     file=None,
+    color: bool = True,
 ) -> None:
     """Print a code line with underline highlighting.
 
@@ -62,14 +105,49 @@ def _print_code_line(
 
     if code_line is not None:
         stripped_line, relative_col = _strip_indent(code_line, col_num)
-        print(f"{line_num:>{line_width}}|{stripped_line}", file=file)
         print(
-            f"{' ' * line_width}|{' ' * relative_col}{underline_char * underline_length}",
+            ERROR_LINE_FORMAT.format(
+                line_num=line_num,
+                width=line_width,
+                gutter=GUTTER_CHAR,
+                content=stripped_line,
+            ),
+            file=file,
+        )
+        print(
+            UNDERLINE_FORMAT.format(
+                spaces=SPACE,
+                width=line_width,
+                gutter=GUTTER_CHAR,
+                indent=SPACE * relative_col,
+                color=YELLOW if color else "",
+                underline=underline_char * underline_length,
+                reset=RESET,
+            ),
             file=file,
         )
     else:
-        print(f"{line_num:>{line_width}}| <line not available>", file=file)
-        print(f"{' ' * line_width}|          {underline_char * 3}", file=file)
+        print(
+            ERROR_LINE_FORMAT.format(
+                line_num=line_num,
+                width=line_width,
+                gutter=GUTTER_CHAR,
+                content=LINE_NOT_AVAILABLE,
+            ),
+            file=file,
+        )
+        print(
+            UNDERLINE_FORMAT.format(
+                spaces=SPACE,
+                width=line_width,
+                gutter=GUTTER_CHAR,
+                indent=SPACE * 11,
+                color=YELLOW if color else "",
+                underline=underline_char * 3,
+                reset=RESET,
+            ),
+            file=file,
+        )
 
     _print_gutter(line_width, file=file)
 
@@ -89,7 +167,12 @@ def _print_hints(
         return
 
     for hint_line in hints[skip_first:]:
-        print(f"{' ' * line_width}| {hint_line}", file=file)
+        print(
+            HINT_LINE_FORMAT.format(
+                spaces=SPACE, width=line_width, gutter=GUTTER_CHAR, hint_line=hint_line
+            ),
+            file=file,
+        )
 
     _print_gutter(line_width, file=file)
     print(file=file)
@@ -101,13 +184,13 @@ def _print_data_source_note(
     """Print the data source note section."""
     assert diag.data_source_location is not None
 
-    print("--- Note: Data defined here with these columns ---", file=file)
+    print(DATA_SOURCE_NOTE, file=file)
     _print_gutter(line_width, file=file)
     _print_code_line(
         diag.data_source_location,
         lines,
         len(_get_line(lines, diag.data_source_location[0]) or ""),
-        "~",
+        TILDE,
         line_width,
         file=file,
     )
@@ -121,7 +204,7 @@ def _print_gutter(line_width: int, file=None) -> None:
         line_width: Width for line number formatting
         file: Optional file-like object to write to
     """
-    print(f"{' ' * line_width}|", file=file)
+    print(f"{SPACE * line_width} {GUTTER_CHAR} ", file=file)
 
 
 def _get_line(lines: list[str], line_num: int) -> str | None:
