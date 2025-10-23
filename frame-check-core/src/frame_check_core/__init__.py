@@ -1,222 +1,139 @@
-import ast
-import os
+"""
+frame-check: A static column checker for dataframes!
+"""
+
+import argparse
+import glob
+import sys
 from pathlib import Path
-from typing import Self, cast
+from typing import cast
 
-from frame_check_core._ast import WrappedNode
-from frame_check_core._message import print_diagnostics
-from frame_check_core._models import (
-    ColumnHistory,
-    ColumnInstance,
-    Diagnostic,
-    FrameHistory,
-    FrameInstance,
-    LineIdKey,
-)
+from frame_check_core.config import Config
+
+from .frame_checker import FrameChecker
+from .util.message import print_diagnostics
 
 
-class FrameChecker(ast.NodeVisitor):
-    def __init__(self):
-        self.import_aliases: dict[str, str] = {}
-        self.frames: FrameHistory = FrameHistory()
-        self.column_accesses: ColumnHistory = ColumnHistory()
-        self.definitions: dict[str, ast.AST] = {}
-        self.diagnostics: list[Diagnostic] = []
-        self._col_assignment_subscripts: set[ast.Subscript] = set()
-        self.source = ""
+def create_parser() -> argparse.ArgumentParser:
+    """Create and configure the argument parser for frame-check CLI.
 
-    @classmethod
-    def check(cls, code: str | ast.Module | Path) -> Self:
-        checker = cls()
-        if isinstance(code, (str, Path)) and os.path.isfile(str(code)):
-            with open(str(code), "r") as f:
-                source = f.read()
-                tree = ast.parse(source)
-            checker.source = source
-        elif isinstance(code, str):
-            tree = ast.parse(code)
-            checker.source = code
-        elif isinstance(code, ast.Module):
-            tree = code
-            checker.source = ""
+    Returns:
+        Configured ArgumentParser instance.
+    """
+    parser = argparse.ArgumentParser(
+        prog="frame-check",
+        description="A static checker for dataframes!",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+    parser.add_argument(
+        "files",
+        type=str,
+        nargs="*",
+        help="Python files, directories, or glob patterns to check. ",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="%(prog)s 0.1.0",
+    )
+    parser.add_argument(
+        "--ignore",
+        type=str,
+        nargs="+",
+        help="Files to ignore during checking (e.g. test.py)",
+        default=[],
+    )
+
+    return parser
+
+
+def collect_python_files(paths: list[str], config: Config) -> list[Path]:
+    """Collect all Python files from the given paths.
+
+    Args:
+        paths: List of file paths, directory paths, or glob patterns.
+               If empty, defaults to all .py files in current directory recursively.
+        config: Config object with exclusion patterns.
+
+    Returns:
+        List of Path objects for Python files to check.
+    """
+
+    if not paths:
+        # Default: all .py files in current directory and subdirectories (recursive)
+        all_files = sorted(Path(p) for p in Path.cwd().rglob("*.py"))
+        # Filter out excluded files using fast prefix checking
+        result = [f for f in all_files if not config.should_exclude(f)]
+        return result
+
+    collected_files: set[Path] = set()
+
+    for path_str in paths:
+        path = Path(path_str)
+
+        if path.is_file() and path.suffix == ".py":
+            collected_files.add(path.resolve())
+        elif path.is_dir():
+            # Recursively find all .py files in the directory
+            collected_files.update(path.rglob("*.py"))
         else:
-            raise TypeError(f"Unsupported type: {type(code)}")
+            # treat as a glob pattern
+            for matched_path in glob.glob(path_str, recursive=True):
+                matched = Path(matched_path)
+                if matched.is_file() and matched.suffix == ".py":
+                    collected_files.add(matched.resolve())
 
-        checker.visit(tree)
-        # Generate diagnostics
-        checker._generate_diagnostics()
-        return checker
-
-    def _generate_diagnostics(self):
-        """Generate diagnostics from collected column accesses."""
-        for access in self.column_accesses.values():
-            if access.id not in access.frame.columns:
-                message = f"Column '{access.id}' does not exist"
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.lineno}"
-                if access.frame.data_source_lineno is not None:
-                    data_line += (
-                        f" from data defined at line {access.frame.data_source_lineno}"
-                    )
-                data_line += " with columns:"
-                hints = [data_line]
-                for col in sorted(access.frame.columns):
-                    hints.append(f"  • {col}")
-                definition_location = (access.frame.lineno, 0)
-                data_source_location = (
-                    (access.frame.data_source_lineno, 0)
-                    if access.frame.data_source_lineno is not None
-                    else None
-                )
-
-                diagnostic = Diagnostic(
-                    column_name=access.id,
-                    message=message,
-                    severity="error",
-                    location=(access.lineno, access.start_col),
-                    underline_length=access.underline_length,
-                    hint=hints,
-                    definition_location=definition_location,
-                    data_source_location=data_source_location,
-                )
-                self.diagnostics.append(diagnostic)
-
-    @staticmethod
-    def _is_dict(node: ast.Assign) -> bool:
-        return isinstance(node.value, ast.Dict)
-
-    def maybe_get_df(self, node: ast.Assign) -> ast.Assign | None:
-        """Check if an assignment creates a pandas Frame."""
-        func = WrappedNode(node.value).get("func")
-        val = func.get("value")
-        # Check if this is a pandas Frame constructor
-        if (
-            val.get("id").val in self.import_aliases.values()
-            and func.get("attr").val == "DataFrame"
-        ):
-            return node
-
-        return None
-
-    def resolve_args(
-        self, args: WrappedNode[list[ast.Name | ast.Dict]]
-    ) -> WrappedNode[ast.Dict | None]:
-        arg0 = args[0]
-        if isinstance(arg0_val := arg0.val, ast.Name):
-            def_node = self.definitions.get(arg0_val.id)
-            return WrappedNode(def_node)
-        else:
-            return cast(WrappedNode[ast.Dict | None], arg0)
-
-    def new_frame_instance(self, node: ast.Assign) -> "FrameInstance | None":  # type: ignore[return]
-        n = WrappedNode[ast.Assign](node)
-        original_arg = n.get("value").get("args")[0]
-        data_arg = self.resolve_args(n.get("value").get("args"))
-        call_keywords = n.get("value").get("keywords")
-        name = n.targets[0].get("id")
-
-        data_source_lineno = None
-        if isinstance(original_arg.val, ast.Name):
-            def_node = self.definitions.get(original_arg.val.id)
-            if isinstance(def_node, ast.Assign):
-                data_source_lineno = def_node.lineno
-
-        if (
-            name.val is not None
-            and data_arg.val is not None
-            and call_keywords.val is not None
-        ):
-            return FrameInstance(
-                node,
-                node.lineno,
-                name.val,
-                data_arg,
-                [
-                    WrappedNode[ast.keyword](kw)
-                    for kw in call_keywords.val  # ty: ignore
-                ],
-                data_source_lineno=data_source_lineno,
-            )
-
-    def maybe_assign_df(self, node: ast.Assign) -> bool:
-        maybe_df = self.maybe_get_df(node)
-        if maybe_df is not None:
-            if frame := self.new_frame_instance(maybe_df):
-                self.frames.add(frame)
-                return True
-        return False
-
-    def visit_Assign(self, node: ast.Assign):
-        # Store definitions:
-        for target in node.targets:
-            if isinstance(target, ast.Name):
-                self.definitions[target.id] = node
-
-            elif isinstance(target, ast.Subscript):
-                subscript = WrappedNode[ast.Subscript](target)
-                subscript_value = subscript.get("value")
-                frames = self.frames.get(subscript_value.get("id"))
-                if frames:
-                    last_frame = frames[-1]
-                    # Create a new frame instance for the column
-                    new_frame = FrameInstance(
-                        node,
-                        node.lineno,
-                        last_frame.id,
-                        last_frame.data_arg,
-                        last_frame.keywords,
-                    )
-                    col = subscript.get("slice").as_type(ast.Constant).get("value")
-                    new_frame.add_columns(col)
-                    self.frames.add(new_frame)
-                    # Store subscript as it is a column assignment
-                    self._col_assignment_subscripts.add(target)
-
-        self.maybe_assign_df(node)
-        self.generic_visit(node)
-
-    def visit_Import(self, node: ast.Import):
-        for alias in node.names:
-            if alias.name == "pandas":
-                # Use asname if available, otherwise use the module name
-                self.import_aliases["pandas"] = alias.asname or alias.name
-
-        self.generic_visit(node)
-
-    def visit_Subscript(self, node: ast.Subscript):
-        if (  # ignore subscript if it is a column assignment
-            node not in self._col_assignment_subscripts
-        ):
-            n = WrappedNode[ast.Subscript](node)
-            if (
-                frame_id := n.get("value").get("id").val
-            ) in self.frames.instance_keys():
-                if isinstance(const := n.get("slice").val, ast.Constant) and isinstance(
-                    const.value, str
-                ):
-                    frame = self.frames.get_before(node.lineno, frame_id)
-                    if frame is not None:
-                        start_col = node.value.end_col_offset or 0
-                        underline_length = (node.end_col_offset or 0) - start_col
-                        self.column_accesses[LineIdKey(node.lineno, const.value)] = (
-                            ColumnInstance(
-                                node,
-                                node.lineno,
-                                const.value,
-                                frame,
-                                start_col,
-                                underline_length,
-                            )
-                        )
-
-            self.generic_visit(node)
+    # Filter out excluded files using fast prefix checking
+    result = sorted(f for f in collected_files if not config.should_exclude(f))
+    return result
 
 
-def main():
-    import sys
+def main(argv: list[str] | None = None, config: Config | None = None) -> int:
+    """Main entry point for the CLI."""
+    parser = create_parser()
+    args = parser.parse_args(argv)
 
-    if len(sys.argv) != 2:
-        print("Usage: python -m frame_check_core <file.py>", file=sys.stderr)
-        sys.exit(1)
-    path = sys.argv[1]
-    fc = FrameChecker.check(path)
-    print_diagnostics(fc, path)
+    config = Config()  # Default configuration
+
+    if (frame_check_settings := Path.cwd() / "frame-check.toml").exists():
+        config = Config.load_from(frame_check_settings)
+
+    elif (pyproject_settings := Path.cwd() / "pyproject.toml").exists():
+        config = Config.load_from(pyproject_settings)
+
+    if len(sys.argv) == 1:
+        parser.print_help(sys.stderr)
+        return 0
+
+    if args.ignore:
+        cast(set, config.exclude).update(args.ignore)
+
+    # Collect all Python files to check
+    python_files = collect_python_files(args.files, config=config)
+
+    if not python_files:
+        print("No Python files found to check.", file=sys.stderr)
+        return 0
+
+    # Track if any file has diagnostics
+    has_errors = False
+
+    # Process each file
+    for file_path in python_files:
+        try:
+            fc = FrameChecker.check(file_path)
+            if fc.diagnostics:
+                has_errors = True
+                print_diagnostics(fc, str(file_path))
+
+        except SyntaxError as e:
+            print(f"Syntax error in {file_path}:\n{e}", file=sys.stderr)
+            has_errors = True
+        except Exception as e:
+            print(f"Error checking {file_path}:\n{e}", file=sys.stderr)
+            has_errors = True
+
+    return 1 if has_errors else 0

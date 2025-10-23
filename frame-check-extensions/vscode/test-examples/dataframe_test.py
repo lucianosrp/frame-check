@@ -23,9 +23,9 @@ def test_basic_dataframe():
     )
 
     print(df["salary"])  # Error: Column 'salary' not found
-    df['salary'] = [50000, 60000, 70000]  # Adding a new column
+    df["salary"] = [50000, 60000, 70000]  # Adding a new column
 
-    print(df['salary'])
+    print(df["salary"])
 
     return df
 
@@ -188,3 +188,6 @@ if __name__ == "__main__":
     test_dataframe_operations()
 
     print("Test file execution complete!")
+
+# Exclude from pytest collection
+__test__ = False
