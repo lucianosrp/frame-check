@@ -20,6 +20,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
+from .models.region import CodeRegion
 from .util.col_similarity import zero_deps_jaro_winkler
 
 
@@ -81,7 +82,11 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_lino}"
+                data_line = (
+                    f"DataFrame '{access.frame.id}' created at "
+                    f"line {access.frame.defined_region.start.row}, "
+                    f"character {access.frame.defined_region.start.col}"
+                )
                 data_line += " with columns:"
                 hints = [data_line]
 
@@ -100,7 +105,7 @@ class FrameChecker(ast.NodeVisitor):
                     severity=Severity.ERROR,
                     region=access.region,
                     hint=hints,
-                    definition_location=(access.frame.defined_lino, 0),
+                    definition_region=access.frame.defined_region,
                 )
                 self.diagnostics.append(diagnostic)
 
@@ -153,7 +158,6 @@ class FrameChecker(ast.NodeVisitor):
             pass  # TODO
         if created is not None:
             new_frame = FrameInstance.new(
-                lineno=node.lineno,
                 id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
                 region=CodeRegion.from_ast_node(node.targets[0]),
                 data_arg=None,
@@ -187,7 +191,8 @@ class FrameChecker(ast.NodeVisitor):
                     # New column assignment to existing DataFrame
                     subscript_slice: ast.expr = subscript.slice
                     new_frame = last_frame.new_instance(
-                        lineno=node.lineno, new_columns=subscript_slice
+                        region=CodeRegion.from_ast_node(target),
+                        new_columns=subscript_slice,
                     )
                     self.frames.add(new_frame)
 
@@ -272,7 +277,7 @@ class FrameChecker(ast.NodeVisitor):
                 set_result(node, returned)
             if df.columns != updated.columns and frame is not None:
                 new_frame = frame.new_instance(
-                    lineno=node.lineno,
+                    region=CodeRegion.from_ast_node(node),
                     new_columns=updated.columns,
                 )
                 self.frames.add(new_frame)

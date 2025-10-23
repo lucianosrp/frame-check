@@ -37,14 +37,14 @@ class FrameInstance:
     identifier, data arguments, and columns.
     """
 
-    lineno: int
+    region: CodeRegion
     """
-    Line number where this frame instance appears
+    Code region where this frame instance appears
     """
 
-    defined_lino: int
+    defined_region: CodeRegion
     """
-    Line number where this frame instance is first defined
+    Code region where this frame instance is first defined
     """
 
     id: str
@@ -71,7 +71,7 @@ class FrameInstance:
     def new(
         cls,
         *,
-        lineno: int,
+        region: CodeRegion,
         id: str,
         data_arg: ast.List | ast.Dict | None = None,
         keywords: list[ast.keyword] = field(default_factory=list),
@@ -91,18 +91,18 @@ class FrameInstance:
             A new FrameInstance with the specified properties
         """
         return cls(
-            lineno=lineno,
+            region=region,
             id=id,
             data_arg=data_arg,
             keywords=keywords,
             columns=frozenset(get_column_values(columns)),
-            defined_lino=lineno,
+            defined_region=region,
         )
 
     def new_instance(
         self,
         *,
-        lineno: int,
+        region: CodeRegion,
         new_columns: Iterable[str] | ast.expr,
     ) -> "FrameInstance":
         """
@@ -119,10 +119,10 @@ class FrameInstance:
             A new FrameInstance with updated properties
         """
         return FrameInstance(
-            lineno=lineno,
+            region=region,
             id=self.id,
             columns=self.columns.union(get_column_values(new_columns)),
-            defined_lino=self.defined_lino,
+            defined_region=self.defined_region,
         )
 
 
