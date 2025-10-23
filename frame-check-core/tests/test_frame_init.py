@@ -1,5 +1,4 @@
 from frame_check_core import FrameChecker
-from frame_check_core.models.region import CodePosition, CodeRegion
 
 
 def test_frame_init_dict_arg():

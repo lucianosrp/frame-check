@@ -2,7 +2,6 @@ from pathlib import Path
 
 import pytest
 from frame_check_core import FrameChecker
-from frame_check_core.models.region import CodePosition, CodeRegion
 
 CSV_TEST_FILE = Path(__file__) / "data" / "csv_file.csv"
 
