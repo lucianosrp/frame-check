@@ -37,8 +37,9 @@ from frame_check_core.config.paths import any_match, collect_python_files
         ({"src/*.py", "tests/*.py"}, "tests/file.py", True),
         ({"src/*.py", "tests/*.py"}, "src/subdir/file.py", False),
         # More complex combinations
-        ({"**/*.py", "!src/"}, "src/file.py", True),
-        ({"**/*.py", "!src/"}, "docs/file.py", True),
+        ({"s**.py"}, "src/file.py", True),
+        ({"s**c/*.py"}, "src/file.py", True),
+        ({"s**.py"}, "docs/file.py", False),
         ({"*.py", "src/**/*.txt"}, "src/subdir/file.txt", True),
         (
             {"*.py", "src/**/*.txt"},

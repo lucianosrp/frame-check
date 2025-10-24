@@ -38,9 +38,20 @@ class Config:
 
     def update_exclude(self, exclusion_patterns: Iterable[str]) -> None:
         """Processes new exclusion patterns."""
-        self._exclude.update(
-            paths.normalize_pattern(pattern, True)
+        normalized_patterns = [
+            paths.normalize_pattern(pattern, self.recursive)
             for pattern in exclusion_patterns
+        ]
+        # Need to handle a special case involving recursive patterns like "foo**bar",
+        # that is created by normalization strategy
+        special_patterns = [
+            pattern.replace("*/**/*", "*")
+            for pattern in normalized_patterns
+            if self.recursive and "*/**/*" in pattern
+        ]
+
+        self._exclude.update(
+            normalized_patterns + special_patterns
         )
 
     def update(
