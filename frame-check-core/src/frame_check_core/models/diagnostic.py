@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import TypeIs
 
 
 class IllegalAccess:
