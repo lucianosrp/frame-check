@@ -174,8 +174,7 @@ class FrameChecker(ast.NodeVisitor):
             match target:
                 case ast.Subscript(value=ast.Name(id=df_name), slice=subscript_slice):
                     df_name = df_name or ""
-                    last_frame = self.frames.get_before(node.lineno, df_name)
-                    if last_frame:
+                    if last_frame := self.frames.get_before(node.lineno, df_name):
                         # CAM-1: direct column assignment to existing DataFrame
                         new_frame = last_frame.new_instance(
                             lineno=node.lineno, new_columns=subscript_slice
