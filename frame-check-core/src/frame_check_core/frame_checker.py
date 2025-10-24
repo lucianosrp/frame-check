@@ -221,7 +221,6 @@ class FrameChecker(ast.NodeVisitor):
             if method is None:
                 return
 
-            method(args=node.args, keywords=node.keywords)
             updated, returned, error = method(node.args, node.keywords)
             if error is not None:
                 # self.column_accesses[LineIdKey(node.lineno, "")] = error
