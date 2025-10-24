@@ -12,7 +12,7 @@ from .ast.models import (
     set_assigning,
     set_result,
 )
-from .models.diagnostic import Diagnostic, Severity, CodeSource
+from .models.diagnostic import CodeSource, Diagnostic, Severity
 from .models.history import (
     ColumnHistory,
     ColumnInstance,
@@ -171,25 +171,19 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
         for target in node.targets:
-            if isinstance(target, ast.Name):
-                # Defining a variable
-                self.definitions[target.id] = get_result(node.value)
+            match target:
+                case ast.Subscript(value=ast.Name(id=df_name), slice=subscript_slice):
+                    df_name = df_name or ""
+                    if last_frame := self.frames.get_before(node.lineno, df_name):
+                        # CAM-1: direct column assignment to existing DataFrame
+                        new_frame = last_frame.new_instance(
+                            lineno=node.lineno, new_columns=subscript_slice
+                        )
+                        self.frames.add(new_frame)
 
-            elif isinstance(target, ast.Subscript):
-                subscript = target
-                if not isinstance(subscript.value, ast.Name):
-                    continue
-
-                df_name = subscript.value.id
-                df_name = df_name if df_name is not None else ""
-                last_frame = self.frames.get_before(node.lineno, df_name)
-                if last_frame:
-                    # New column assignment to existing DataFrame
-                    subscript_slice: ast.expr = subscript.slice
-                    new_frame = last_frame.new_instance(
-                        lineno=node.lineno, new_columns=subscript_slice
-                    )
-                    self.frames.add(new_frame)
+                case ast.Name(id=id):
+                    # any other value assignemnt like foo = "something"
+                    self.definitions[id] = get_result(node.value)
 
         self._maybe_create_df(node)
 
