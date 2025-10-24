@@ -42,17 +42,7 @@ class Config:
             paths.normalize_pattern(pattern, self.recursive)
             for pattern in exclusion_patterns
         ]
-        # Need to handle a special case involving recursive patterns like "foo**bar",
-        # that is created by normalization strategy
-        special_patterns = [
-            pattern.replace("*/**/*", "*")
-            for pattern in normalized_patterns
-            if self.recursive and "*/**/*" in pattern
-        ]
-
-        self._exclude.update(
-            normalized_patterns + special_patterns
-        )
+        self._exclude.update(normalized_patterns)
 
     def update(
         self,

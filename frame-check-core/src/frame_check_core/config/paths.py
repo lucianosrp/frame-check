@@ -1,7 +1,8 @@
 from collections.abc import Iterable, Iterator, Sequence
-import glob
-from pathlib import Path
 from fnmatch import fnmatch
+import glob
+from itertools import combinations
+from pathlib import Path
 import re
 
 
@@ -15,26 +16,31 @@ def normalize_pattern(pattern: str, recursive: bool) -> str:
     path_pattern = absolute_path(pattern)
     if pattern.endswith("/") or path_pattern.is_dir():
         suffix = "/**" if recursive else "/*"
-        return normalize_doublestar(path_pattern.as_posix(), recursive) + suffix
+        return path_pattern.as_posix() + suffix
     else:
-        return normalize_doublestar(path_pattern.as_posix(), recursive)
+        return path_pattern.as_posix()
 
 
-def normalize_doublestar(pattern: str, recursive: bool) -> str:
+def inner_doublestar(pattern: str) -> list[str]:
     """
-    Ensure that double stars only appear as directory separators if matching recursively,
-    i.e. "foo**bar" becomes "foo*/**/*bar". Note that this will NOT match "foobar",
-    so this needs to be handled as a special case (e.g. by adding a separate pattern replacing
-    "foo**bar" with "foo*bar").
-    
-    For non-recursive matching, replace '**' with '*'.
+    Converts patterns with inner '**' so that "**" only appears as directory,
+    - "foo**" becomes "foo*/**"
+    - "**foo" becomes "**/*foo"
+    - "foo**bar" becomes two patterns "foo*/**/*bar" and "foo*bar".
     """
-    if recursive:
-        right_side_replaced = re.sub(r"\*\*([^/]+)", r"**/*\1", pattern)
-        fully_replaced = re.sub(r"([^/]+)\*\*", r"\1*/**", right_side_replaced)
-    else:
-        fully_replaced = pattern.replace("**", "*")
-    return fully_replaced
+    right_side_replaced = re.sub(r"\*\*([^/]+)", r"**/*\1", pattern)
+    fully_replaced = re.sub(r"([^/]+)\*\*", r"\1*/**", right_side_replaced)
+    new_patterns = [fully_replaced]
+    if "*/**/*" in fully_replaced:
+        subparts = fully_replaced.split("*/**/*")
+        for set_size in range(1, len(subparts)):
+            for combination in combinations(range(1, len(subparts)), set_size):
+                new_pattern = ""
+                for i, element in enumerate(subparts):
+                    new_pattern += "*" if i in combination else "*/**/*" if i else ""
+                    new_pattern += element
+                new_patterns.append(new_pattern)
+    return new_patterns
 
 
 def normalized_path_str(path: Path | str) -> str:
@@ -83,6 +89,12 @@ def path_parts_match(
             else:
                 # Trailing ** matches everything
                 return True
+        elif "**" in pattern_parts[0]:
+            possible_patterns = inner_doublestar(pattern_parts[0])
+            return any(
+                path_parts_match(path_parts, p.split("/") + list(pattern_parts[1:]))
+                for p in possible_patterns
+            )
         else:
             # Use fnmatch to handle non-recursive wildcards
             if fnmatch(path_parts[0], pattern_parts[0]):

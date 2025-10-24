@@ -159,3 +159,10 @@ def test_collect_python_files():
             recursive=False,
         )
         assert set(files) == {base_path / "file1.py"}
+
+        files = collect_python_files(
+            [str(base_path / "s**r") + "/"],
+            exclusion_patterns=[],
+            recursive=True,
+        )
+        assert set(files) == {base_path / "subdir" / "file3.py"}
