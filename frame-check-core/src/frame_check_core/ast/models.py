@@ -187,6 +187,8 @@ class DFMethod:
         - The second element is the returned dataframe, if any.
         - The third element is an `IllegalAccess` instance representing an error if the method call is illegal, or `None` if there is no error.
         """
+        if definitions is None:
+            definitions = {}
         argsv, keywordsv = parse_args(args, keywords, definitions)
         updated, returned, error = self.func(self.df.columns.copy(), argsv, keywordsv)
         return DF(updated), DF(returned) if returned is not None else None, error
