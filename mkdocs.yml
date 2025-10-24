@@ -8,9 +8,10 @@ theme:
     - navigation.footer
     - navigation.indexes
     - navigation.top
-    - navigation.tabs
     - navigation.instant
     - navigation.instant.prefetch
+    - toc.integrate
+    - toc.follow
   palette:
     # Palette toggle for automatic mode
 
@@ -38,10 +39,21 @@ theme:
 nav:
   - Home: index.md
   - Editor Integrations: editor.md
+  - Features:
+      - summary.md
+      - features/index.md
+      - features/column_assignment_methods.md
+      - features/column_removal_methods.md
+      - features/dataframe_creation_methods.md
+      - features/edge_cases.md
+
 plugins:
   - search:
       enabled: true
       separator: '\.'
+  - gen-files:
+      scripts:
+        - scripts/gen_features.py
   - mkdocstrings:
       handlers:
         python:
