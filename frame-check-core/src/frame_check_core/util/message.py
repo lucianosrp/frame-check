@@ -1,4 +1,7 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TextIO
+
+from ..frame_checker import CodeSource
+from ..models.diagnostic import Severity
 
 if TYPE_CHECKING:
     from ..frame_checker import FrameChecker
@@ -24,15 +27,18 @@ ERROR_LINE_FORMAT = "{line_num:>{width}} {gutter} {content}"
 UNDERLINE_FORMAT = "{spaces:>{width}} {gutter} {indent}{color}{underline}{reset}"
 HINT_LINE_FORMAT = "{spaces:>{width}} {gutter}  {hint_line}"
 
+class DiagnosticDisplay:
+    def __init__(self, )
+
 
 def print_diagnostics(
-    fc: "FrameChecker", path: str, file=None, color: bool = True
+    fc: "FrameChecker", output: TextIO, color: bool = True
 ) -> None:
     """Print formatted diagnostics to stdout or a specified file."""
     if not fc.diagnostics:
         return
 
-    lines = fc.source.splitlines() if fc.source else []
+    lines = fc.source.code.splitlines() if not fc.source.is_ast else []
 
     for diag in fc.diagnostics:
         # Calculate max line number width for proper alignment
@@ -41,29 +47,29 @@ def print_diagnostics(
             max_line_num = max(max_line_num, diag.data_source_location[0])
         line_width = len(str(max_line_num))
 
-        _print_error_header(diag, path, line_width, file=file, color=color)
+        _print_error_header(diag, fc.source, line_width, output=output, color=color)
         _print_code_line(
-            diag.location,
+            diag.region,
             lines,
             diag.underline_length,
             CARET,
             line_width,
-            file=file,
+            output=output,
             color=color,
         )
-        _print_hints(diag.hint, line_width, file=file)
+        _print_hints(diag.hint, line_width, output=output)
 
         if diag.data_source_location:
-            _print_data_source_note(diag, lines, line_width, file=file)
+            _print_data_source_note(diag, lines, line_width, output=output)
 
 
 def _print_error_header(
-    diag: "Diagnostic", path: str, line_width: int, file=None, color: bool = True
+    diag: "Diagnostic", code_source: CodeSource, line_width: int, file=None, color: bool = True
 ) -> None:
     """Print the error header line with file path and message."""
     line_num, col_num = diag.location
     if color:
-        diag_color = RED if diag.severity.value == ERROR_VALUE else YELLOW
+        diag_color = RED if diag.severity == Severity.ERROR else YELLOW
     else:
         diag_color = ""
     location_string = LOCATION_FORMAT.format(

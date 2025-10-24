@@ -1,9 +1,10 @@
 import ast
 from dataclasses import dataclass
 from typing import Self
+from functools import cached_property
 
 
-@dataclass(kw_only=True, order=True, slots=True, frozen=True)
+@dataclass(kw_only=True, order=True, frozen=True)
 class CodePosition:
     """Represents a point in source code."""
 
@@ -11,7 +12,7 @@ class CodePosition:
     col: int = 0
 
 
-@dataclass(kw_only=True, order=True, slots=True, frozen=True)
+@dataclass(kw_only=True, order=True, frozen=True)
 class CodeRegion:
     """Represents a region (end exclusive) in source code."""
 
@@ -22,23 +23,35 @@ class CodeRegion:
         if self.end < self.start:
             raise ValueError("End position must not be before start position.")
 
-    @property
-    def is_empty(self) -> bool:
-        """Check if the region is empty"""
+    @cached_property
+    def row_span(self) -> int:
+        """Get the number of rows spanned by the region"""
 
-        return self.start == self.end
+        return self.end.row - self.start.row
 
-    @property
+    @cached_property
+    def col_span(self) -> int:
+        """Get the number of columns spanned by the region"""
+
+        return self.end.col - self.start.col
+
+    @cached_property
     def is_same_row(self) -> bool:
         """Check if the region is within the same row"""
 
-        return self.start.row == self.end.row
+        return self.row_span == 1
 
-    @property
+    @cached_property
     def is_same_column(self) -> bool:
         """Check if the region is within the same column"""
 
-        return self.start.col == self.end.col
+        return self.col_span == 1
+
+    @cached_property
+    def is_empty(self) -> bool:
+        """Check if the region is empty"""
+
+        return self.col_span == 0 and self.row_span == 0
 
     @classmethod
     def from_ast_node(cls, node: ast.stmt | ast.expr) -> Self:

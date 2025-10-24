@@ -20,6 +20,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
+from .models.source import CodeSource
 from .models.region import CodeRegion
 from .util.col_similarity import zero_deps_jaro_winkler
 
@@ -38,7 +39,7 @@ class FrameChecker(ast.NodeVisitor):
         self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, Result] = {}
         self.diagnostics: list[Diagnostic] = []
-        self.source = ""
+        self.source: CodeSource
 
     @classmethod
     def check(cls, code: str | ast.Module | Path) -> Self:
@@ -63,13 +64,13 @@ class FrameChecker(ast.NodeVisitor):
             with open(str(code), "r") as f:
                 source = f.read()
                 tree = ast.parse(source)
-            checker.source = source
+            checker.source = CodeSource(path=Path(code), code=source)
         elif isinstance(code, str):
             tree = ast.parse(code)
-            checker.source = code
+            checker.source = CodeSource(code=code)
         elif isinstance(code, ast.Module):
             tree = code
-            checker.source = ""
+            checker.source = CodeSource()
         else:
             raise TypeError(f"Unsupported type: {type(code)}")
 
@@ -83,9 +84,8 @@ class FrameChecker(ast.NodeVisitor):
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
                 data_line = (
-                    f"DataFrame '{access.frame.id}' created at "
-                    f"line {access.frame.defined_region.start.row}, "
-                    f"character {access.frame.defined_region.start.col}"
+                    f"DataFrame '{access.frame.id}' created at line "
+                    f"{access.frame.defined_region.start.row}:{access.frame.defined_region.start.col}"
                 )
                 data_line += " with columns:"
                 hints = [data_line]
