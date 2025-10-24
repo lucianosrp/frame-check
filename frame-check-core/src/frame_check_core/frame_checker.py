@@ -131,9 +131,9 @@ class FrameChecker(ast.NodeVisitor):
     @override
     def visit_Assign(self, node: ast.Assign):
         for target in node.targets:
-            set_assigning(target)
             match target:
                 case ast.Subscript(value=ast.Name(id=df_name), slice=subscript_slice):
+                    set_assigning(target)
                     df_name = df_name or ""
                     if last_frame := self.frames.get_before(node.lineno, df_name):
                         # CAM-1: direct column assignment to existing DataFrame

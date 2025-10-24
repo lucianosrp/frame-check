@@ -15,11 +15,11 @@ _ASSIGNING_ATTR = "_frame_checker_assigning"
 _RESULT_ATTR = "_frame_checker_result_columns"
 
 
-def is_assigning(node: ast.expr) -> bool:
+def is_assigning(node: ast.Subscript) -> bool:
     return getattr(node, _ASSIGNING_ATTR, False)
 
 
-def set_assigning(node: ast.expr) -> None:
+def set_assigning(node: ast.Subscript) -> None:
     setattr(node, _ASSIGNING_ATTR, True)
 
 
