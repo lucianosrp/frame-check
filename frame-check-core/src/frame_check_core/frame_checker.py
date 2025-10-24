@@ -105,27 +105,6 @@ class FrameChecker(ast.NodeVisitor):
                 )
                 self.diagnostics.append(diagnostic)
 
-    def get_cols_from_data_arg(self, arg: ast.AST | None) -> set[str]:
-        cols: set[str] = set()
-
-        if arg is None:
-            return set()
-
-        match arg:
-            # Primary case, get the keys of a dict as column
-            case ast.Dict(keys=[ast.Constant(value=str(values)), *_]):
-                cols.update(values)
-                return cols
-
-            # Dict might be assigned beforehand or inside a list:
-            case (
-                ast.Assign(value=maybe_dict_nodes)
-                | ast.List(elts=[maybe_dict_nodes, *_])
-            ):
-                return self.get_cols_from_data_arg(maybe_dict_nodes)
-
-        return set()
-
     def _maybe_create_df(self, node: ast.Assign) -> None:
         match node.value:
             case ast.Call(
@@ -134,7 +113,7 @@ class FrameChecker(ast.NodeVisitor):
                 keywords=keywords,
             ):
                 if method := PD.get_method(attr):
-                    created, error = method(args, keywords)
+                    created, error = method(args, keywords, self.definitions)
                     if error is not None:
                         pass  # TODO
                     if created is not None:
@@ -165,7 +144,7 @@ class FrameChecker(ast.NodeVisitor):
 
                 case ast.Name(id=id):
                     # any other value assignemnt like foo = "something"
-                    self.definitions[id] = get_result(node.value)
+                    self.definitions[id] = get_result(node.value, self.definitions)
 
         self.generic_visit(node)
         self._maybe_create_df(node)
@@ -230,7 +209,7 @@ class FrameChecker(ast.NodeVisitor):
                     if frame := self.frames.get_before(node.lineno, frame_id):
                         df = DF(frame.columns)
                 case ast.Call(val):
-                    result = get_result(val)
+                    result = get_result(val, self.definitions)
                     if isinstance(result, DF):
                         df = result
 
@@ -242,6 +221,7 @@ class FrameChecker(ast.NodeVisitor):
             if method is None:
                 return
 
+            method(args=node.args, keywords=node.keywords)
             updated, returned, error = method(node.args, node.keywords)
             if error is not None:
                 # self.column_accesses[LineIdKey(node.lineno, "")] = error
