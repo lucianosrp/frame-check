@@ -24,9 +24,10 @@ df["NonExistentColumn"]
     if has_file:
         code_file = tmp_path / "example.py"
         code_file.write_text(code)
-        code = code_file
+        checker = FrameChecker.check(code_file)
+    else:
+        checker = FrameChecker.check(code)
 
-    checker = FrameChecker.check(code)
     assert len(checker.diagnostics) == 1
     diag = checker.diagnostics[0]
     assert diag.message == "Column 'NonExistentColumn' does not exist."
