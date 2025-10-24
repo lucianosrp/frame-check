@@ -12,7 +12,7 @@ from .ast.models import (
     set_assigning,
     set_result,
 )
-from .models.diagnostic import Diagnostic, Severity
+from .models.diagnostic import Diagnostic, Severity, CodeSource
 from .models.history import (
     ColumnHistory,
     ColumnInstance,
@@ -37,7 +37,7 @@ class FrameChecker(ast.NodeVisitor):
         self.column_accesses: ColumnHistory = ColumnHistory()
         self.definitions: dict[str, Result] = {}
         self.diagnostics: list[Diagnostic] = []
-        self.source = ""
+        self.source: CodeSource
 
     @classmethod
     def check(cls, code: str | ast.Module | Path) -> Self:
@@ -62,13 +62,13 @@ class FrameChecker(ast.NodeVisitor):
             with open(str(code), "r") as f:
                 source = f.read()
                 tree = ast.parse(source)
-            checker.source = source
+            checker.source = CodeSource(path=Path(code), code=source)
         elif isinstance(code, str):
             tree = ast.parse(code)
-            checker.source = code
+            checker.source = CodeSource(code=code)
         elif isinstance(code, ast.Module):
             tree = code
-            checker.source = ""
+            checker.source = CodeSource()
         else:
             raise TypeError(f"Unsupported type: {type(code)}")
 
