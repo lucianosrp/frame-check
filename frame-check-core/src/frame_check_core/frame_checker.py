@@ -105,74 +105,35 @@ class FrameChecker(ast.NodeVisitor):
                 )
                 self.diagnostics.append(diagnostic)
 
-    def get_cols_from_data_arg(self, arg: ast.AST | None) -> set[str]:
-        cols: set[str] = set()
-
-        if arg is None:
-            return set()
-
-        if isinstance(arg, ast.Dict):
-            keys_nodes = arg.keys
-
-            for k in keys_nodes:
-                if isinstance(k, ast.Constant) and isinstance(k.value, str):
-                    cols.add(k.value)
-            return cols
-
-        # If wrapped around Assign or other, try to get inner Dict
-        if isinstance(arg, ast.Assign) and isinstance(arg.value, ast.Dict):
-            inner_dict = arg.value
-            keys = inner_dict.keys
-            for key in keys:
-                if isinstance(key, ast.Constant) and isinstance(key.value, str):
-                    cols.add(key.value)
-            return cols
-
-        # If wrapped around List
-        if isinstance(arg, ast.List):
-            for elt in arg.elts:
-                if isinstance(elt, ast.Dict):
-                    keys = elt.keys
-                    for k in keys:
-                        if isinstance(k, ast.Constant) and isinstance(k.value, str):
-                            cols.add(k.value)
-            return cols
-
-        return set()
-
     def _maybe_create_df(self, node: ast.Assign) -> None:
-        if not isinstance(node.value, ast.Call):
-            return
-        func = node.value.func
-        if not isinstance(func, ast.Attribute) or not isinstance(func.value, ast.Name):
-            return
-        method = PD.get_method(func.attr)
-        if method is None:
-            return
-        created, error = method(node.value.args, node.value.keywords)
-        if error is not None:
-            pass  # TODO
-        if created is not None:
-            new_frame = FrameInstance.new(
-                lineno=node.lineno,
-                id=node.targets[0].id if isinstance(node.targets[0], ast.Name) else "",
-                data_arg=None,
-                keywords=[],
-                columns=created.columns,
-            )
-            self.frames.add(new_frame)
+        match node.value:
+            case ast.Call(
+                func=ast.Attribute(value=ast.Name(), attr=attr),
+                args=args,
+                keywords=keywords,
+            ):
+                if method := PD.get_method(attr):
+                    created, error = method(args, keywords, self.definitions)
+                    if error is not None:
+                        pass  # TODO
+                    if created is not None:
+                        new_frame = FrameInstance.new(
+                            lineno=node.lineno,
+                            id=node.targets[0].id
+                            if isinstance(node.targets[0], ast.Name)
+                            else "",
+                            data_arg=None,
+                            keywords=[],
+                            columns=created.columns,
+                        )
+                        self.frames.add(new_frame)
 
     @override
     def visit_Assign(self, node: ast.Assign):
         for target in node.targets:
-            if isinstance(target, ast.Subscript):
-                set_assigning(target)
-
-        self.generic_visit(node)
-
-        for target in node.targets:
             match target:
                 case ast.Subscript(value=ast.Name(id=df_name), slice=subscript_slice):
+                    set_assigning(target)
                     df_name = df_name or ""
                     if last_frame := self.frames.get_before(node.lineno, df_name):
                         # CAM-1: direct column assignment to existing DataFrame
@@ -183,8 +144,9 @@ class FrameChecker(ast.NodeVisitor):
 
                 case ast.Name(id=id):
                     # any other value assignemnt like foo = "something"
-                    self.definitions[id] = get_result(node.value)
+                    self.definitions[id] = get_result(node.value, self.definitions)
 
+        self.generic_visit(node)
         self._maybe_create_df(node)
 
     @override
@@ -241,16 +203,13 @@ class FrameChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
         if isinstance(node.func, ast.Attribute):
-            frame_id = None
             df = None
             match node.func.value:
-                case ast.Name():
-                    frame_id = node.func.value.id
-                    frame = self.frames.get_before(node.lineno, frame_id)
-                    if frame is not None:
+                case ast.Name(frame_id):
+                    if frame := self.frames.get_before(node.lineno, frame_id):
                         df = DF(frame.columns)
-                case ast.Call():
-                    result = get_result(node.func.value)
+                case ast.Call(val):
+                    result = get_result(val, self.definitions)
                     if isinstance(result, DF):
                         df = result
 
