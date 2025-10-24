@@ -78,9 +78,7 @@ def test_parse_filepath():
         from frame_check_core.config.paths import parse_filepath
 
         # Test single file
-        files = list(
-            parse_filepath(str(base_path / "file1.py"), recursive=True)
-        )
+        files = list(parse_filepath(str(base_path / "file1.py"), recursive=True))
         assert files == [base_path / "file1.py"]
 
         # Test directory

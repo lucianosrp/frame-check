@@ -63,9 +63,7 @@ def absolute_path(path: Path | str) -> Path:
     return Path(path).resolve()
 
 
-def path_parts_match(
-    path_parts: Sequence[str], pattern_parts: Sequence[str]
-) -> bool:
+def path_parts_match(path_parts: Sequence[str], pattern_parts: Sequence[str]) -> bool:
     """Recursively check if path parts match pattern parts, supporting '**'."""
     if path_parts and pattern_parts:
         if pattern_parts[0] == "**":
@@ -74,9 +72,7 @@ def path_parts_match(
                 next_pattern_part = pattern_parts[pattern_index]
                 path_index = 0
                 while path_index < len(path_parts) and not (
-                    found_match := fnmatch(
-                        path_parts[path_index], next_pattern_part
-                    )
+                    found_match := fnmatch(path_parts[path_index], next_pattern_part)
                 ):
                     path_index += 1
                 if found_match:

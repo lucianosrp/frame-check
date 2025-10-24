@@ -61,9 +61,7 @@ def create_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(
-    argv: list[str] | None = None, override_config: Config | None = None
-) -> int:
+def main(argv: list[str] | None = None, override_config: Config | None = None) -> int:
     """Main entry point for the CLI."""
     parser = create_parser()
     args = parser.parse_args(argv)
