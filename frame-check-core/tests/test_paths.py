@@ -88,9 +88,7 @@ def test_parse_filepath():
         assert files == [base_path / "file1.py"]
 
         # Test directory
-        files = list(
-            parse_filepath((base_path / "subdir/").as_posix(), recursive=True)
-        )
+        files = list(parse_filepath((base_path / "subdir/").as_posix(), recursive=True))
         assert set(files) == {
             base_path / "subdir" / "file3.py",
             base_path / "subdir" / "file4.md",
