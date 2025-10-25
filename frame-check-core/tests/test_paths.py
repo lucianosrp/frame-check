@@ -4,7 +4,11 @@ from pathlib import Path
 
 import pytest
 from frame_check_core.config import Config
-from frame_check_core.config.paths import any_match, collect_python_files
+from frame_check_core.config.paths import (
+    any_match,
+    collect_python_files,
+    parse_filepath,
+)
 
 
 @pytest.mark.parametrize(
@@ -58,31 +62,35 @@ from frame_check_core.config.paths import any_match, collect_python_files
     ],
 )
 def test_any_match(exclude: set[str], target: str, should_exclude: bool):
-    temp_dir = tempfile.gettempdir()
-    conf = Config()
-    conf.update_exclude(map(lambda p: f"{temp_dir}/{p}", exclude))
-    target_path = Path(temp_dir) / target
-    assert any_match(target_path, conf.exclude) == should_exclude
+    with tempfile.TemporaryDirectory() as temp_dir:
+        os.chdir(temp_dir)
+        conf = Config()
+        conf.update_exclude(map(lambda p: f"{temp_dir}/{p}", exclude))
+        target_path = Path(temp_dir) / target
+        assert any_match(target_path.absolute(), conf.exclude) == should_exclude
 
 
 def test_parse_filepath():
     with tempfile.TemporaryDirectory() as tmpdir:
-        base_path = Path(tmpdir)
+        base_path = Path(tmpdir).absolute()
         # Create test files and directories
         (base_path / "file1.py").touch()
         (base_path / "file2.txt").touch()
         (base_path / "subdir").mkdir()
         (base_path / "subdir" / "file3.py").touch()
         (base_path / "subdir" / "file4.md").touch()
-
-        from frame_check_core.config.paths import parse_filepath
+        os.chdir(base_path)
 
         # Test single file
-        files = list(parse_filepath(str(base_path / "file1.py"), recursive=True))
+        files = list(
+            parse_filepath((base_path / "file1.py").as_posix(), recursive=True)
+        )
         assert files == [base_path / "file1.py"]
 
         # Test directory
-        files = list(parse_filepath(str(base_path / "subdir/"), recursive=True))
+        files = list(
+            parse_filepath((base_path / "subdir/").as_posix(), recursive=True)
+        )
         assert set(files) == {
             base_path / "subdir" / "file3.py",
             base_path / "subdir" / "file4.md",
@@ -101,8 +109,6 @@ def test_parse_filepath():
         }
 
         # Test '.'
-        cwd = os.getcwd()
-        os.chdir(base_path)
         files = list(parse_filepath(".", recursive=True))
         assert set(files) == {
             base_path / "file1.py",
@@ -112,12 +118,12 @@ def test_parse_filepath():
             base_path / "subdir",
             base_path,
         }
-        os.chdir(cwd)
 
 
 def test_collect_python_files():
     with tempfile.TemporaryDirectory() as tmpdir:
-        base_path = Path(tmpdir)
+        base_path = Path(tmpdir).absolute()
+        os.chdir(base_path)
         # Create test files and directories
         (base_path / "file1.py").touch()
         (base_path / "file2.txt").touch()
@@ -129,7 +135,7 @@ def test_collect_python_files():
 
         # Test collecting Python files without exclusions
         files = collect_python_files(
-            [str(base_path)],
+            [base_path.as_posix()],
             exclusion_patterns=[],
             recursive=True,
         )
@@ -141,7 +147,7 @@ def test_collect_python_files():
 
         # Test collecting Python files with exclusions
         files = collect_python_files(
-            [str(base_path)],
+            [base_path.as_posix()],
             exclusion_patterns=[f"{base_path.as_posix()}/ignore_dir/**"],
             recursive=True,
         )
@@ -152,14 +158,14 @@ def test_collect_python_files():
 
         # Test collecting Python files with non-recursive option
         files = collect_python_files(
-            [str(base_path)],
+            [base_path.as_posix()],
             exclusion_patterns=[],
             recursive=False,
         )
         assert set(files) == {base_path / "file1.py"}
 
         files = collect_python_files(
-            [str(base_path / "s**r") + "/"],
+            [(base_path / "s**r").as_posix() + "/"],
             exclusion_patterns=[],
             recursive=True,
         )

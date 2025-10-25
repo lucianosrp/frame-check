@@ -18,7 +18,7 @@ def test_frame_check_toml():
             default_venv_exclusion,
             f"{Path.cwd().as_posix()}/ignore-dir/**",
         }
-        assert config.nonrecursive is False
+        assert config.recursive is True
 
 
 def test_pyproject_toml():
@@ -33,18 +33,17 @@ def test_pyproject_toml():
             default_venv_exclusion,
             f"{Path.cwd().as_posix()}/ignore-dir/**",
         }
-        assert config.nonrecursive is False
+        assert config.recursive is True
 
 
 def test_loading_toml_with_nonrecursive():
     with tempfile.TemporaryDirectory() as tmpdir:
         path = Path(f"{tmpdir}/frame-check.toml")
         with open(path, "w") as f:
-            f.write("nonrecursive = true")
+            f.write("recursive = false")
             f.flush()
 
         config = Config.load_from(path)
-        assert config.nonrecursive is True
         assert config.recursive is False
         assert config._exclude == {default_venv_exclusion}
 
@@ -65,7 +64,6 @@ def test_update_exclude():
 
 def test_update_nonrecursive():
     config = Config()
-    assert config.nonrecursive is False
-    config.update(nonrecursive=True)
-    assert config.nonrecursive is True
+    assert config.recursive is True
+    config.update(recursive=False)
     assert config.recursive is False

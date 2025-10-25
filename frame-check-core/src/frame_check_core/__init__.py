@@ -38,7 +38,7 @@ def create_parser() -> argparse.ArgumentParser:
         default=[],
     )
     parser.add_argument(
-        "--nonrecursive",
+        "--non-recursive",
         "-n",
         action="store_true",
         help="Do not recursively check directories for Python files.",
@@ -88,7 +88,7 @@ def main(argv: list[str] | None = None, override_config: Config | None = None) -
             config = Config.load_from(pyproject_settings)
         config.update(
             exclude=args.ignore,
-            nonrecursive=args.nonrecursive,
+            recursive=not args.non_recursive,
         )
     else:
         config = override_config
