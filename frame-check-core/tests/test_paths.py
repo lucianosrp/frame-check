@@ -67,12 +67,12 @@ def test_any_match(exclude: set[str], target: str, should_exclude: bool):
         conf = Config()
         conf.update_exclude(map(lambda p: f"{temp_dir}/{p}", exclude))
         target_path = Path(temp_dir) / target
-        assert any_match(target_path.absolute(), conf.exclude) == should_exclude
+        assert any_match(target_path.resolve(), conf.exclude) == should_exclude
 
 
 def test_parse_filepath():
     with tempfile.TemporaryDirectory() as tmpdir:
-        base_path = Path(tmpdir).absolute()
+        base_path = Path(tmpdir).resolve()
         # Create test files and directories
         (base_path / "file1.py").touch()
         (base_path / "file2.txt").touch()
@@ -120,7 +120,7 @@ def test_parse_filepath():
 
 def test_collect_python_files():
     with tempfile.TemporaryDirectory() as tmpdir:
-        base_path = Path(tmpdir).absolute()
+        base_path = Path(tmpdir).resolve()
         os.chdir(base_path)
         # Create test files and directories
         (base_path / "file1.py").touch()
