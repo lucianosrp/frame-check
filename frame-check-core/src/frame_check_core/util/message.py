@@ -38,7 +38,7 @@ def print_diagnostics(fc: "FrameChecker", file=None, color: bool = True) -> None
 
     for diag in fc.diagnostics:
         # Calculate max line number width for proper alignment
-        
+
         max_line_num = diag.loc[0]
         if diag.data_src_region:
             max_line_num = max(max_line_num, diag.data_source_location[0])
