@@ -14,7 +14,10 @@ class CodePosition:
 
 @dataclass(kw_only=True, order=True, frozen=True)
 class CodeRegion:
-    """Represents a region (end exclusive) in source code."""
+    """
+    Represents a rectangular region (end exclusive) in source code,
+    bounded by a start (top left) and end (bottom right) position.
+    """
 
     start: CodePosition
     end: CodePosition
@@ -54,7 +57,7 @@ class CodeRegion:
         return self.col_span == 0 and self.row_span == 0
 
     @classmethod
-    def from_ast_node(cls, node: ast.stmt | ast.expr) -> Self:
+    def from_ast_node(cls, *, node: ast.stmt | ast.expr) -> Self:
         """Construct a CodeRegion from an AST node."""
 
         start_position = CodePosition(row=node.lineno, col=node.col_offset)
@@ -66,4 +69,12 @@ class CodeRegion:
             row=exclusive_end_row,
             col=exclusive_end_col_offset,
         )
+        return cls(start=start_position, end=end_position)
+
+    @classmethod
+    def from_tuples(cls, *, start: tuple[int, int], end: tuple[int, int]) -> Self:
+        """Shorthand to create a CodeRegion from start and end tuples."""
+
+        start_position = CodePosition(row=start[0], col=start[1])
+        end_position = CodePosition(row=end[0], col=end[1])
         return cls(start=start_position, end=end_position)

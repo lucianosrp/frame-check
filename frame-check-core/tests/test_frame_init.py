@@ -1,4 +1,5 @@
 from frame_check_core import FrameChecker
+from frame_check_core.models.region import CodeRegion
 
 
 def test_frame_init_dict_arg():
@@ -13,7 +14,10 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b"})
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(4, 0),
+        end=(5, 2),  # end is always exclusive
+    )
 
 
 def test_frame_init_list_of_dict_arg():
@@ -28,7 +32,10 @@ df = pd.DataFrame([{"a": 1, "b": 4 }, {"a": 2, "b": 5 }, {"a": 3, "b": 6 }])
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b"})
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(4, 0),
+        end=(5, 2),  # end is always exclusive
+    )
 
 
 def test_frame_init_dict_var_arg():
@@ -44,4 +51,7 @@ df = pd.DataFrame(data)
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b"})
-    assert frame_instance.lineno == 5
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(5, 0),
+        end=(6, 2),  # end is always exclusive
+    )

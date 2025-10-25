@@ -25,6 +25,13 @@ def pd_read_csv(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult
         case str():
             return {usecols}, None
         case list():
-            return {col for col in usecols if isinstance(col, str)}, None
+            # Flatten and resolve variables (if a variable is a list, expand it)
+            cols = set()
+            for col in usecols:
+                if isinstance(col, str):
+                    cols.add(col)
+                elif isinstance(col, list):
+                    cols.update(x for x in col if isinstance(x, str))
+            return cols, None
         case _:
             return None, None

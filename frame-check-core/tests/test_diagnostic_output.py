@@ -1,13 +1,14 @@
+from pathlib import Path
+import pytest
 from frame_check_core import FrameChecker
 from frame_check_core.util.message import (
     print_diagnostics,
 )
 from frame_check_core.models.region import CodePosition, CodeRegion
-import pytest
-import sys
 
 
-def test_print_diagnostics_format(capfd: pytest.CaptureFixture[str]):
+@pytest.mark.parametrize("has_file", [True, False])
+def test_print_diagnostics_format(has_file: bool, tmp_path: Path, capfd):
     code = """
 import pandas as pd
 
@@ -21,7 +22,13 @@ df = pd.DataFrame(data)
 
 df["NonExistentColumn"]
 """
-    checker = FrameChecker.check(code)
+    if has_file:
+        code_file = tmp_path / "example.py"
+        code_file.write_text(code)
+        checker = FrameChecker.check(code_file)
+    else:
+        checker = FrameChecker.check(code)
+
     assert len(checker.diagnostics) == 1
     diag = checker.diagnostics[0]
     assert diag.message == "Column 'NonExistentColumn' does not exist."
@@ -41,15 +48,21 @@ df["NonExistentColumn"]
     assert "  • Salary" in diag.hint
 
     # Call print_diagnostics and capture output
-    print_diagnostics(checker, sys.stdout, color=False)
+    print_diagnostics(checker, color=False)
 
     # Read captured output
     captured = capfd.readouterr()
     output = captured.out
 
     # Test content instead of exact formatting
+
+    error_line_prefix = ""
+    if has_file:
+        error_line_prefix = f"{code_file.name}:"
+
     assert (
-        "example.py:12:3 - error: Column 'NonExistentColumn' does not exist." in output
+        f"{error_line_prefix}12:3 - error: Column 'NonExistentColumn' does not exist."
+        in output
     )
     assert 'df["NonExistentColumn"]' in output
     assert "DataFrame 'df' created at line 10:0 with columns with columns:" in output
