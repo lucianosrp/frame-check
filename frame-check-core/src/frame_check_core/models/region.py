@@ -16,6 +16,9 @@ class CodePosition:
 
         return (self.row - 1, self.col)
 
+    def __str__(self) -> str:
+        return f"{self.row}:{self.col}"
+
 
 @dataclass(kw_only=True, order=True, frozen=True)
 class CodeRegion:
