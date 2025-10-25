@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
+from .region import CodeRegion
 
 
 class IllegalAccess:
@@ -27,9 +28,8 @@ class Diagnostic:
     column_name: str
     message: str
     severity: Severity
-    location: tuple[int, int]
-    underline_length: int = 0
+    region: CodeRegion
     hint: list[str] | None = None
     name_suggestion: str | None = None
-    definition_location: tuple[int, int] | None = None
-    data_source_location: tuple[int, int] | None = None
+    definition_region: CodeRegion | None = None
+    data_src_region: CodeRegion | None = None

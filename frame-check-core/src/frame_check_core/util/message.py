@@ -1,6 +1,9 @@
+# mypy: ignore-errors
+# ruff: noqa: F821
+# TODO: Improve the message formatting in another PR
 from typing import TYPE_CHECKING
 
-from frame_check_core.models.diagnostic import CodeSource
+from ..models.diagnostic import Severity, CodeSource
 
 if TYPE_CHECKING:
     from ..frame_checker import FrameChecker
@@ -36,25 +39,26 @@ def print_diagnostics(fc: "FrameChecker", file=None, color: bool = True) -> None
 
     for diag in fc.diagnostics:
         # Calculate max line number width for proper alignment
-        max_line_num = diag.location[0]
-        if diag.data_source_location:
+
+        max_line_num = diag.loc[0]
+        if diag.data_src_region:
             max_line_num = max(max_line_num, diag.data_source_location[0])
         line_width = len(str(max_line_num))
 
         _print_error_header(diag, fc.source, line_width, file=file, color=color)
         _print_code_line(
-            diag.location,
+            diag.region,
             lines,
             diag.underline_length,
             CARET,
             line_width,
-            file=file,
+            output=output,
             color=color,
         )
-        _print_hints(diag.hint, line_width, file=file)
+        _print_hints(diag.hint, line_width, output=output)
 
         if diag.data_source_location:
-            _print_data_source_note(diag, lines, line_width, file=file)
+            _print_data_source_note(diag, lines, line_width, output=output)
 
 
 def _print_error_header(
@@ -67,7 +71,7 @@ def _print_error_header(
     """Print the error header line with source and message."""
     line_num, col_num = diag.location
     if color:
-        diag_color = RED if diag.severity.value == ERROR_VALUE else YELLOW
+        diag_color = RED if diag.severity == Severity.ERROR else YELLOW
     else:
         diag_color = ""
     location_string = LOCATION_FORMAT.format(

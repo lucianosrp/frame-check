@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 from frame_check_core import FrameChecker
+from frame_check_core.models.region import CodeRegion
 
 CSV_TEST_FILE = (Path(__file__).parent / "data" / "csv_file.csv").as_posix()
 
@@ -23,7 +24,13 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b", "c"})
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == frame_instance.defined_region
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(4, 0),
+        end=(5, 2),  # end is always exclusive
+    )
+    assert frame_instance.region.row_span == 1
+    assert frame_instance.region.col_span == 2
 
 
 @pytest.mark.xfail(reason="FrameInstance to be refactored")
@@ -39,12 +46,18 @@ cols = ['a', 'b', 'c']
 df = pd.read_csv("{CSV_TEST_FILE}", usecols=cols)
 """
     fc = FrameChecker.check(code)
-    assert fc.frames.instance_ids() == ["df"]
+    assert fc.frames.instance_ids() == {"df"}
     frame_instance = fc.frames.get_at(4, "df")
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b", "c"})
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == frame_instance.defined_region
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(4, 0),
+        end=(5, 2),  # end is always exclusive
+    )
+    assert frame_instance.region.row_span == 1
+    assert frame_instance.region.col_span == 2
 
 
 def test_read_csv_no_usecols():
@@ -69,4 +82,10 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=[a, 'b', 'c'])
     assert frame_instance is not None
     assert frame_instance.id == "df"
     assert frame_instance.columns == frozenset({"a", "b", "c"})
-    assert frame_instance.lineno == 4
+    assert frame_instance.region == frame_instance.defined_region
+    assert frame_instance.region == CodeRegion.from_tuples(
+        start=(4, 0),
+        end=(5, 2),  # end is always exclusive
+    )
+    assert frame_instance.region.row_span == 1
+    assert frame_instance.region.col_span == 2

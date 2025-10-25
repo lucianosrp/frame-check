@@ -20,6 +20,7 @@ from .models.history import (
     FrameInstance,
     LineIdKey,
 )
+from .models.region import CodeRegion
 from .util.col_similarity import zero_deps_jaro_winkler
 
 
@@ -81,7 +82,7 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_lino}"
+                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_region.start}"
                 data_line += " with columns:"
                 hints = [data_line]
 
@@ -98,10 +99,9 @@ class FrameChecker(ast.NodeVisitor):
                     column_name=access.id,
                     message=message,
                     severity=Severity.ERROR,
-                    location=(access.lineno, access.start_col),
-                    underline_length=access.underline_length,
+                    region=access.region,
                     hint=hints,
-                    definition_location=(access.frame.defined_lino, 0),
+                    definition_region=access.frame.defined_region,
                 )
                 self.diagnostics.append(diagnostic)
 
@@ -118,7 +118,7 @@ class FrameChecker(ast.NodeVisitor):
                         pass  # TODO
                     if created is not None:
                         new_frame = FrameInstance.new(
-                            lineno=node.lineno,
+                            region=CodeRegion.from_ast_node(node=node.targets[0]),
                             id=node.targets[0].id
                             if isinstance(node.targets[0], ast.Name)
                             else "",
@@ -138,7 +138,8 @@ class FrameChecker(ast.NodeVisitor):
                     if last_frame := self.frames.get_before(node.lineno, df_name):
                         # CAM-1: direct column assignment to existing DataFrame
                         new_frame = last_frame.new_instance(
-                            lineno=node.lineno, new_columns=subscript_slice
+                            region=CodeRegion.from_ast_node(node=node),
+                            new_columns=subscript_slice,
                         )
                         self.frames.add(new_frame)
 
@@ -186,16 +187,12 @@ class FrameChecker(ast.NodeVisitor):
         # referencing a column by string constant
         frame = self.frames.get_before(node.lineno, frame_id)
         if frame is not None:
-            start_col = node.value.end_col_offset or 0
-            underline_length = (node.end_col_offset or 0) - start_col
-            # record this column access
+            # record this column access with just the column name
             self.column_accesses[LineIdKey(node.lineno, const.value)] = ColumnInstance(
                 _node=node,
-                lineno=node.lineno,
                 id=const.value,
+                region=CodeRegion.from_ast_node(node=node.slice),
                 frame=frame,
-                start_col=start_col,
-                underline_length=underline_length,
             )
 
     @override
@@ -229,7 +226,7 @@ class FrameChecker(ast.NodeVisitor):
                 set_result(node, returned)
             if df.columns != updated.columns and frame is not None:
                 new_frame = frame.new_instance(
-                    lineno=node.lineno,
+                    region=CodeRegion.from_ast_node(node=node),
                     new_columns=updated.columns,
                 )
                 self.frames.add(new_frame)
