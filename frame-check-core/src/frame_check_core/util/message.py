@@ -1,4 +1,5 @@
 # mypy: ignore-errors
+# ruff: noqa: F821
 # TODO: Improve the message formatting in another PR
 from typing import TYPE_CHECKING
 
