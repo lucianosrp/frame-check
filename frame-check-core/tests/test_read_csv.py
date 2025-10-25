@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from frame_check_core import FrameChecker
 
-CSV_TEST_FILE = Path(__file__) / "data" / "csv_file.csv"
+CSV_TEST_FILE = (Path(__file__).parent / "data" / "csv_file.csv").as_posix()
 
 
 @pytest.mark.support(

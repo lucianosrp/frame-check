@@ -3,7 +3,8 @@
 ---
 
 # frame-check
-**A static checker for pandas DataFrames**
+
+A static checker for pandas DataFrames
 
 ## Why frame-check?
 
@@ -41,7 +42,7 @@ else:
 
 **frame-check** brings static analysis to pandas DataFrames - just like `mypy` does for Python types. It tracks DataFrame schemas through your code and catches column access errors *before* your code runs.
 
-### See it in action:
+### See it in action
 
 ```python
 import pandas as pd
@@ -59,7 +60,8 @@ result = df["customer_id"]  # Column doesn't exist!
 ```
 
 **Error output:**
-```
+
+```plaintext
 example.py:12:10 - error: Column 'customer_id' does not exist
   |
 12| result = df["customer_id"]
@@ -83,21 +85,17 @@ example.py:12:10 - error: Column 'customer_id' does not exist
 
 **frame-check** - Because DataFrame bugs shouldn't be a surprise! 🐼✨
 
-
-
 ### Existing research/ solutions
 
 - [pdchecker](https://github.com/ncu-psl/pdchecker)
 - [Mypy issue](https://github.com/python/mypy/issues/17935)
 - [StaticFrame](https://github.com/static-frame/static-frame)
 
-
 ### Components
 
 - **frame-check-core**: The heart of the type checker that parses Python AST and tracks DataFrame schemas
 - **frame-check-lsp**: Language Server Protocol implementation for editor integration
 - **frame-check-extensions**: Editor-specific extensions (currently supports Zed)
-
 
 ## Contribute
 
