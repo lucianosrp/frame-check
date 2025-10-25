@@ -8,8 +8,13 @@ from functools import cached_property
 class CodePosition:
     """Represents a point in source code."""
 
-    row: int
+    row: int = 0
     col: int = 0
+
+    def as_lsp_position(self) -> tuple[int, int]:
+        """Convert to zero-indexed tuple (Usually for LSP)"""
+
+        return (self.row - 1, self.col)
 
 
 @dataclass(kw_only=True, order=True, frozen=True)

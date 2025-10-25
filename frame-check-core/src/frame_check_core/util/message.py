@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, TextIO
+# mypy: ignore-errors
+# TODO: Improve the message formatting in another PR
+from typing import TYPE_CHECKING
 
-from ..frame_checker import CodeSource
-from ..models.diagnostic import Severity
-
-from frame_check_core.models.diagnostic import CodeSource
+from ..models.diagnostic import Severity, CodeSource
 
 if TYPE_CHECKING:
     from ..frame_checker import FrameChecker

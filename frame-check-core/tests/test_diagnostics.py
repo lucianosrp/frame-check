@@ -1,10 +1,8 @@
-import pytest
 from frame_check_core.frame_checker import Diagnostic, FrameChecker
 from frame_check_core.models.diagnostic import Severity
 from frame_check_core.models.region import CodeRegion
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_data():
     # best similarity = 0.585 (<= 0.9)
 

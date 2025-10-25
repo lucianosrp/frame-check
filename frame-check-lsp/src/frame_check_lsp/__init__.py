@@ -28,13 +28,8 @@ async def frame_diagnostics(
         for diagnostic in fc.diagnostics:
             ls_diagnostic = types.Diagnostic(
                 range=types.Range(
-                    start=types.Position(
-                        diagnostic.location[0] - 1, diagnostic.location[1]
-                    ),
-                    end=types.Position(
-                        diagnostic.location[0] - 1,
-                        diagnostic.location[1] + diagnostic.underline_length,
-                    ),
+                    start=types.Position(*diagnostic.region.start.as_lsp_position()),
+                    end=types.Position(*diagnostic.region.end.as_lsp_position()),
                 ),
                 message=diagnostic.message,
                 source="Frame Checker",
@@ -43,20 +38,17 @@ async def frame_diagnostics(
 
             ls_diagnostics.append(ls_diagnostic)
 
-            if (
-                diagnostic.hint is not None
-                and diagnostic.definition_location is not None
-            ):
+            if diagnostic.hint is not None and diagnostic.definition_region is not None:
                 # Hint at DataFrame creation site
                 creation_hint_msg = "\n".join(diagnostic.hint)
                 ls_diagnostics.append(
                     types.Diagnostic(
                         range=types.Range(
                             start=types.Position(
-                                diagnostic.definition_location[0] - 1, 0
+                                *diagnostic.definition_region.start.as_lsp_position()
                             ),
                             end=types.Position(
-                                diagnostic.definition_location[0] - 1, 80
+                                *diagnostic.definition_region.end.as_lsp_position()
                             ),
                         ),
                         message=creation_hint_msg,
@@ -66,10 +58,7 @@ async def frame_diagnostics(
                 )
 
                 # Optional hint at data definition site
-                if (
-                    diagnostic.data_source_location is not None
-                    and len(diagnostic.hint) > 1
-                ):
+                if diagnostic.data_src_region is not None and len(diagnostic.hint) > 1:
                     data_hint_msg = "Data defined here with columns:\n" + "\n".join(
                         diagnostic.hint[1:]
                     )
@@ -77,10 +66,10 @@ async def frame_diagnostics(
                         types.Diagnostic(
                             range=types.Range(
                                 start=types.Position(
-                                    diagnostic.data_source_location[0] - 1, 0
+                                    *diagnostic.data_src_region.start.as_lsp_position()
                                 ),
                                 end=types.Position(
-                                    diagnostic.data_source_location[0] - 1, 80
+                                    *diagnostic.data_src_region.end.as_lsp_position()
                                 ),
                             ),
                             message=data_hint_msg,
@@ -88,17 +77,17 @@ async def frame_diagnostics(
                             severity=types.DiagnosticSeverity.Hint,
                         )
                     )
-                elif diagnostic.data_source_location is not None:
+                elif diagnostic.data_src_region is not None:
                     # Fallback if no separate columns list
                     data_hint_msg = "\n".join(diagnostic.hint)
                     ls_diagnostics.append(
                         types.Diagnostic(
                             range=types.Range(
                                 start=types.Position(
-                                    diagnostic.data_source_location[0] - 1, 0
+                                    *diagnostic.data_src_region.start.as_lsp_position()
                                 ),
                                 end=types.Position(
-                                    diagnostic.data_source_location[0] - 1, 80
+                                    *diagnostic.data_src_region.end.as_lsp_position()
                                 ),
                             ),
                             message=data_hint_msg,
