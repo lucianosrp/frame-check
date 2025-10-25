@@ -96,11 +96,11 @@ def test_parse_filepath():
         }
 
         # Test glob pattern
-        files = list(parse_filepath(str(base_path / "*.py"), recursive=True))
+        files = list(parse_filepath((base_path / "*.py").as_posix(), recursive=True))
         assert set(files) == {base_path / "file1.py"}
 
         # Test recursive glob pattern
-        files = list(parse_filepath(str(base_path / "**/*.py"), recursive=True))
+        files = list(parse_filepath((base_path / "**/*.py").as_posix(), recursive=True))
         assert set(files) == {
             base_path / "file1.py",
             base_path / "subdir" / "file3.py",
