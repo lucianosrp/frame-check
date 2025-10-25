@@ -62,16 +62,14 @@ from frame_check_core.config.paths import (
     ],
 )
 def test_any_match(exclude: set[str], target: str, should_exclude: bool):
-    with tempfile.TemporaryDirectory() as temp_dir:
-        os.chdir(temp_dir)
-        conf = Config()
-        conf.update_exclude(map(lambda p: f"{temp_dir}/{p}", exclude))
-        target_path = Path(temp_dir) / target
-        assert any_match(target_path.resolve(), conf.exclude) == should_exclude
+    conf = Config()
+    conf.update_exclude(exclude)
+    target_path = Path(target)
+    assert any_match(target_path.resolve(), conf.exclude) == should_exclude
 
 
 def test_parse_filepath():
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         base_path = Path(tmpdir).resolve()
         # Create test files and directories
         (base_path / "file1.py").touch()
@@ -119,7 +117,7 @@ def test_parse_filepath():
 
 
 def test_collect_python_files():
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
         base_path = Path(tmpdir).resolve()
         os.chdir(base_path)
         # Create test files and directories
