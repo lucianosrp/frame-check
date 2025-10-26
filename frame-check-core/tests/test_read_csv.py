@@ -7,11 +7,7 @@ from frame_check_core.models.region import CodeRegion
 CSV_TEST_FILE = (Path(__file__).parent / "data" / "csv_file.csv").as_posix()
 
 
-@pytest.mark.support(
-    name="read_csv + usecols inline",
-    code="#DCMS-6",
-    example="df = pd.read_csv('file.csv', usecols=['a', 'b', 'c'])",
-)
+@pytest.mark.support(code="#DCMS-6")
 def test_read_csv_usecols():
     code = f"""
 import pandas as pd
@@ -34,11 +30,7 @@ df = pd.read_csv("{CSV_TEST_FILE}", usecols=['a', 'b', 'c'])
 
 
 @pytest.mark.xfail(reason="FrameInstance to be refactored")
-@pytest.mark.support(
-    name="read_csv + usecols indirect",
-    code="#DCMS-6-1",
-    example="cols=['a', 'b', 'c']; df = pd.read_csv('file.csv', usecols=cols)",
-)
+@pytest.mark.support(code="#DCMS-6-1")
 def test_read_csv_usecols_indirect():
     code = f"""
 import pandas as pd

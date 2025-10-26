@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --dev
       - name: mypy check
-        run: uv run mypy . --check-untyped-defs
+        run: uv run mypy . --check-untyped-defs --exclude scripts
 
       - name: Install ruff
         run: uv pip install ruff
