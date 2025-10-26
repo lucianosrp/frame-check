@@ -1,9 +1,8 @@
-import pytest
 from frame_check_core.frame_checker import Diagnostic, FrameChecker
 from frame_check_core.models.diagnostic import Severity
+from frame_check_core.models.region import CodeRegion
 
 
-@pytest.mark.xfail(reason="Diagnostic to be refactored", strict=True)
 def test_diagnostics_data():
     # best similarity = 0.585 (<= 0.9)
 
@@ -29,17 +28,22 @@ df["NonExistentColumn"]
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
             severity=Severity.ERROR,
-            location=(14, 2),
-            underline_length=21,
+            region=CodeRegion.from_tuples(
+                start=(14, 3),
+                end=(15, 22),
+            ),
             hint=[
-                "DataFrame 'df' created at line 11 from data defined at line 4 with columns:",
+                "DataFrame 'df' created at line 11:0 with columns:",
                 "  • Age",
                 "  • City",
                 "  • Name",
                 "  • Salary",
             ],
-            definition_location=(11, 0),
-            data_source_location=(4, 0),
+            definition_region=CodeRegion.from_tuples(
+                start=(11, 0),
+                end=(12, 2),
+            ),
+            data_src_region=None,
         )
     ]
 
@@ -69,17 +73,22 @@ df["NonExistentColumn"]
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
             severity=Severity.ERROR,
-            location=(14, 2),
-            underline_length=21,
+            region=CodeRegion.from_tuples(
+                start=(14, 3),
+                end=(15, 22),
+            ),
             hint=[
-                "DataFrame 'df' created at line 4 with columns:",
+                "DataFrame 'df' created at line 4:0 with columns:",
                 "  • Age",
                 "  • City",
                 "  • Name",
                 "  • Salary",
             ],
-            definition_location=(4, 0),
-            data_source_location=None,
+            definition_region=CodeRegion.from_tuples(
+                start=(4, 0),
+                end=(5, 2),
+            ),
+            data_src_region=None,
         )
     ]
 
@@ -106,27 +115,37 @@ df["NonExistentColumn"]
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
             severity=Severity.ERROR,
-            location=(11, 2),
-            underline_length=21,
+            region=CodeRegion.from_tuples(
+                start=(11, 3),
+                end=(12, 22),
+            ),
             hint=[
-                "DataFrame 'df' created at line 4 with columns:",
+                "DataFrame 'df' created at line 4:0 with columns:",
                 "  • Name",
             ],
-            definition_location=(4, 0),
-            data_source_location=None,
+            definition_region=CodeRegion.from_tuples(
+                start=(4, 0),
+                end=(5, 2),
+            ),
+            data_src_region=None,
         ),
         Diagnostic(
             column_name="NonExistentColumn",
             message="Column 'NonExistentColumn' does not exist.",
             severity=Severity.ERROR,
-            location=(12, 2),
-            underline_length=21,
+            region=CodeRegion.from_tuples(
+                start=(12, 3),
+                end=(13, 22),
+            ),
             hint=[
-                "DataFrame 'df' created at line 4 with columns:",
+                "DataFrame 'df' created at line 4:0 with columns:",
                 "  • Name",
             ],
-            definition_location=(4, 0),
-            data_source_location=None,
+            definition_region=CodeRegion.from_tuples(
+                start=(4, 0),
+                end=(5, 2),
+            ),
+            data_src_region=None,
         ),
     ]
 
@@ -152,14 +171,19 @@ df["NameLower"] = df["Name"].str.lower()
             column_name="NameLower",
             message="Column 'NameLower' does not exist.",
             severity=Severity.ERROR,
-            location=(10, 2),
-            underline_length=13,
+            region=CodeRegion.from_tuples(
+                start=(10, 3),
+                end=(11, 14),
+            ),
             hint=[
-                "DataFrame 'df' created at line 4 with columns:",
+                "DataFrame 'df' created at line 4:0 with columns:",
                 "  • Name",
             ],
-            definition_location=(4, 0),
-            data_source_location=None,
+            definition_region=CodeRegion.from_tuples(
+                start=(4, 0),
+                end=(5, 2),
+            ),
+            data_src_region=None,
         ),
         # TODO: we could had a hint that says something like:
         # NameLower is later defined at line 11
@@ -191,16 +215,21 @@ df["EmpolyeeName"]
             column_name="EmpolyeeName",
             message="Column 'EmpolyeeName' does not exist, did you mean 'employee_name'?",
             severity=Severity.ERROR,
-            location=(15, 2),
-            underline_length=16,
+            region=CodeRegion.from_tuples(
+                start=(15, 3),
+                end=(16, 17),
+            ),
             hint=[
-                "DataFrame 'df' created at line 13 with columns:",
+                "DataFrame 'df' created at line 13:0 with columns:",
                 "  • dept",
                 "  • employee_id",
                 "  • employee_name",
                 "  • paygrade",
             ],
-            definition_location=(13, 0),
-            data_source_location=None,
+            definition_region=CodeRegion.from_tuples(
+                start=(13, 0),
+                end=(14, 2),
+            ),
+            data_src_region=None,
         )
     ]

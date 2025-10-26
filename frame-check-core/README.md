@@ -1,7 +1,7 @@
 # Frame Check Core
 
 The core static analysis engine for frame-check that tracks pandas DataFrame schemas through Python AST.
-`
+
 ## Architecture
 
 ### Core Classes

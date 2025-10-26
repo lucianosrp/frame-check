@@ -1,8 +1,51 @@
+from collections.abc import Iterable, Iterator, Sequence
+from fnmatch import fnmatch
+import glob
+from itertools import combinations
 from pathlib import Path
+import re
 
 
-def normalize_path(path: Path | str) -> str:
-    """Normalize a path to use forward slashes for cross-platform pattern matching.
+def normalize_pattern(pattern: str, recursive: bool) -> str:
+    """
+    Normalize a pattern string for consistent matching:
+    - Converts the pattern to an absolute path.
+    - Appends '/**' for recursive matching if the pattern is a directory
+    - Converts patterns like "**foo" to "**/*foo" for simpler matching.
+    """
+    path_pattern = absolute_path(pattern)
+    if pattern.endswith("/") or path_pattern.is_dir():
+        suffix = "/**" if recursive else "/*"
+        return path_pattern.as_posix() + suffix
+    else:
+        return path_pattern.as_posix()
+
+
+def inner_doublestar(pattern: str) -> list[str]:
+    """
+    Converts patterns with inner '**' so that "**" only appears as directory,
+    - "foo**" becomes "foo*/**"
+    - "**foo" becomes "**/*foo"
+    - "foo**bar" becomes two patterns "foo*/**/*bar" and "foo*bar".
+    """
+    right_side_replaced = re.sub(r"\*\*([^/]+)", r"**/*\1", pattern)
+    fully_replaced = re.sub(r"([^/]+)\*\*", r"\1*/**", right_side_replaced)
+    new_patterns = [fully_replaced]
+    if "*/**/*" in fully_replaced:
+        subparts = fully_replaced.split("*/**/*")
+        for set_size in range(1, len(subparts)):
+            for combination in combinations(range(1, len(subparts)), set_size):
+                new_pattern = ""
+                for i, element in enumerate(subparts):
+                    new_pattern += "*" if i in combination else "*/**/*" if i else ""
+                    new_pattern += element
+                new_patterns.append(new_pattern)
+    return new_patterns
+
+
+def normalized_path_str(path: Path | str) -> str:
+    """Normalize a path by resolving it to an absolute path and
+    converting it to a string with forward slashes.
 
     Args:
         path: A path object or string to normalize.
@@ -12,201 +55,133 @@ def normalize_path(path: Path | str) -> str:
 
     This ensures consistent pattern matching across different operating systems.
     """
-    if isinstance(path, Path):
-        return path.as_posix()
-    return str(path).replace("\\", "/")
+    return absolute_path(path).as_posix()
 
 
-def get_normalized_relative_path(
-    root_path: Path, file_path: Path
-) -> tuple[str, Path] | None:
-    """Get the normalized relative path from the root path.
-
-    Args:
-        file_path: The absolute path to normalize relative to the root path.
-
-    Returns:
-        A tuple containing (normalized_path_string, path_object) or None if the path
-        is outside the root directory.
-
-    This is used as the first step in path matching to handle paths relative to
-    the project root consistently across platforms.
-    """
-    try:
-        rel_path = file_path.resolve().relative_to(root_path.resolve())
-        rel_path_normalized = normalize_path(rel_path)
-        return rel_path_normalized, rel_path
-    except ValueError:
-        # File is outside root path
-        return None
+def absolute_path(path: Path | str) -> Path:
+    """Get the absolute path from the current working directory."""
+    return Path(path).resolve()
 
 
-def matches_recursive_pattern(pattern: str, rel_path_str: str, rel_path: Path) -> bool:
-    """Check if a path matches a pattern with recursive wildcards (**/).
-
-    Args:
-        pattern: The exclude pattern containing **/ syntax (e.g., "**/vscode/**").
-        rel_path_str: Normalized string representation of the relative path.
-        rel_path: Path object representing the relative path.
-
-    Returns:
-        True if the path matches the recursive pattern, False otherwise.
-
-    This handles patterns like "**/*.py" which match any .py file at any depth,
-    or "**/vscode/**" which matches any file within any vscode directory at any depth.
-    """
-    from fnmatch import fnmatch
-
-    parts = pattern.split("**/")
-    if len(parts) == 2:
-        prefix, suffix = parts
-        # Check if the path has the right prefix (if any)
-        if not prefix or rel_path_str.startswith(prefix):
-            # Check if the path ends with the right suffix
-            if fnmatch(rel_path.name, Path(suffix).name):
+def path_parts_match(path_parts: Sequence[str], pattern_parts: Sequence[str]) -> bool:
+    """Recursively check if path parts match pattern parts, supporting '**'."""
+    if path_parts and pattern_parts:
+        if pattern_parts[0] == "**":
+            if len(pattern_parts) > 1:
+                pattern_index = 1
+                next_pattern_part = pattern_parts[pattern_index]
+                path_index = 0
+                while path_index < len(path_parts) and not (
+                    found_match := fnmatch(path_parts[path_index], next_pattern_part)
+                ):
+                    path_index += 1
+                if found_match:
+                    return path_parts_match(
+                        path_parts[path_index + 1 :],
+                        pattern_parts[pattern_index + 1 :],
+                    )
+                else:
+                    return False
+            else:
+                # Trailing ** matches everything
                 return True
+        elif "**" in pattern_parts[0]:
+            possible_patterns = inner_doublestar(pattern_parts[0])
+            return any(
+                path_parts_match(path_parts, p.split("/") + list(pattern_parts[1:]))
+                for p in possible_patterns
+            )
+        else:
+            # Use fnmatch to handle non-recursive wildcards
+            if fnmatch(path_parts[0], pattern_parts[0]):
+                return path_parts_match(path_parts[1:], pattern_parts[1:])
+            else:
+                return False
 
-            # Check if the path matches the **/ pattern with any directory
-            if fnmatch(rel_path_str, f"**/{suffix}"):
-                return True
-    return False
-
-
-def matches_directory_wildcard(pattern: str, rel_parts: tuple, rel_path: Path) -> bool:
-    """Check if a path matches a pattern with wildcards in directory parts.
-
-    Args:
-        pattern: The exclude pattern containing wildcards in directory parts.
-        rel_parts: Tuple of path parts from the relative path.
-        rel_path: Path object representing the relative path.
-
-    Returns:
-        True if the path matches the directory wildcard pattern, False otherwise.
-
-    This handles two types of patterns:
-    1. Patterns with wildcards in directory names (e.g., "src/*/file.py")
-    2. Simple directory/file patterns (e.g., "src/*.py") where only the filename
-        contains wildcards
-    """
-    from fnmatch import fnmatch
-
-    # Handle patterns with wildcards in the directory part
-    if "*" in Path(pattern).parent.as_posix():
-        # Split into parts and match each part
-        pattern_parts = Path(pattern).parts
-        rel_parts_to_check = rel_parts[: len(pattern_parts)]
-
-        # Convert pattern parts to use forward slashes
-        pattern_parts_normalized = [normalize_path(p) for p in pattern_parts]
-
-        if len(rel_parts_to_check) == len(pattern_parts):
-            match = True
-            for pattern_part, path_part in zip(
-                pattern_parts_normalized, rel_parts_to_check
-            ):
-                # Convert path_part to string with forward slashes
-                path_part_str = normalize_path(path_part)
-                if not fnmatch(path_part_str, pattern_part):
-                    match = False
-                    break
-            return match
+    elif path_parts or pattern_parts:
+        # Either pattern or path is exhausted before completed match
+        return False
     else:
-        # Handle simple dir/*.py pattern
-        pattern_path = Path(pattern)
-        pattern_dir = normalize_path(pattern_path.parent)
-        pattern_filename = pattern_path.name
-
-        # Match only files directly in the specified directory
-        rel_parent_normalized = normalize_path(rel_path.parent)
-        if rel_parent_normalized == pattern_dir:
-            if fnmatch(rel_path.name, pattern_filename):
-                return True
-
-    return False
+        return True
 
 
-def matches_simple_filename_pattern(pattern: str, rel_path: Path) -> bool:
-    """Check if a filename matches a simple pattern like *.py.
+def path_match(absolute_path: Path, pattern: str) -> bool:
+    """Check if a given absolute path matches a specific pattern."""
+    try:
+        # Everything except recursive patterns can be handled
+        # by Path.match()
+        return (
+            path_parts_match(absolute_path.parts, Path(pattern).parts)
+            if "**" in pattern
+            else absolute_path.match(pattern)
+        )
+    except Exception as e:
+        print(
+            f"Warning: Exception while trying to match path {absolute_path} with pattern {pattern}: {e}. Treating as no match."
+        )
+        return False
+
+
+def any_match(absolute_path: Path, patterns: Iterable[str]) -> bool:
+    """
+    Check if a file should be excluded based on patterns.
+
+    The function supports various pattern types:
+    - Simple paths: 'dir/file.py' (matches exact path)
+    - Single wildcards:
+        - '*' (matches any characters in a filename or directory name, except path separators)
+        - '?' (matches a single character, except path separators)
+        - '[]' (matches any character in the specified set)
+    - Recursive wildcard:
+        - 'dir/**' (matches all files in dir and its subdirectories)
+        - 'dir/**/file.py' (matches file.py dir and in any subdirectory of dir)
+    - Recursive directories:
+        - 'dir/**' (equivalent to 'dir/**', matches all files in dir and its subdirectories)
+
+    This function handles both Unix-style and Windows-style paths, normalizing them to use
+    forward slashes for consistent cross-platform pattern matching.
+    """
+    # In Python 3.13+, this can be done with method on Path class
+    # return any(absolute_path.full_match(pattern) for pattern in patterns)
+    return any(path_match(absolute_path, pattern) for pattern in patterns)
+
+
+def parse_filepath(file_str: str, recursive: bool) -> Iterator[Path]:
+    """
+    Parse a filepath or glob string into an iterator of absolute path objects.
+    Directories (indicated by ending in '/' or being an actual directory)
+    and glob patterns will be expanded to yield all matching files.
+    """
+    path = absolute_path(file_str)
+    if file_str.endswith("/") or path.is_dir() or not path.is_file():
+        return (
+            Path(file)
+            for file in glob.glob(
+                normalize_pattern(file_str, recursive),
+                recursive=recursive,
+                include_hidden=True,
+            )
+        )
+    else:
+        return iter((path,))
+
+
+def collect_python_files(
+    filepaths: Iterable[str], exclusion_patterns: Iterable[str], recursive: bool
+) -> list[Path]:
+    """Collect all Python files from the given paths.
 
     Args:
-        pattern: The simple filename pattern (e.g., "*.py", "config.?").
-        rel_path: Path object representing the relative path.
+        paths: List of file paths, directory paths, or glob patterns.
+        config: Config object with exclusion patterns.
 
     Returns:
-        True if the filename matches the pattern, False otherwise.
-
-    This handles simple filename patterns that apply to the filename only,
-    ignoring directory structure.
+        List of Path objects for Python files to check.
     """
-    from fnmatch import fnmatch
-
-    return fnmatch(rel_path.name, pattern)
-
-
-def matches_directory_prefix(pattern: str, rel_parts: tuple, rel_str: str) -> bool:
-    """Check if a path matches a directory prefix pattern.
-
-    Args:
-        pattern: The directory prefix pattern (e.g., "tests/", ".venv/").
-        rel_parts: Tuple of path parts from the relative path.
-        rel_str: Normalized string representation of the relative path.
-
-    Returns:
-        True if the path starts with the directory prefix, False otherwise.
-
-    This handles patterns that specify a directory prefix. Any file located within
-    the specified directory or its subdirectories will match.
-    Example: "vscode/" will match "vscode/file.py" and "vscode/subdir/file.py"
-    """
-    pattern_normalized = normalize_path(pattern)
-    pattern_parts = Path(pattern_normalized).parts
-
-    # Check if the normalized path starts with the pattern
-    if rel_str.startswith(pattern_normalized):
-        return True
-
-    # Alternative check using parts
-    if len(rel_parts) >= len(pattern_parts):
-        # Convert both sides to strings with forward slashes for comparison
-        rel_parts_normalized = [
-            normalize_path(p) for p in rel_parts[: len(pattern_parts)]
-        ]
-        pattern_parts_normalized = [normalize_path(p) for p in pattern_parts]
-
-        if rel_parts_normalized == pattern_parts_normalized:
-            return True
-
-    return False
-
-
-def matches_exact_path(pattern: str, rel_str: str, rel_path: Path) -> bool:
-    """Check if a path matches an exact path pattern.
-
-    Args:
-        pattern: The exact pattern to match (e.g., "file.py", "dir").
-        rel_str: Normalized string representation of the relative path.
-        rel_path: Path object representing the relative path.
-
-    Returns:
-        True if the path matches the exact pattern, False otherwise.
-
-    This handles three types of exact matches:
-    1. Exact path match: "dir/file.py" matches only "dir/file.py"
-    2. Directory matches: "dir" matches "dir/file.py" (with a trailing slash check)
-    3. Simple filename matches: "file.py" matches any file named "file.py" regardless of directory
-    """
-    pattern_normalized = normalize_path(pattern)
-
-    # Handle exact path match
-    if pattern_normalized == rel_str:
-        return True
-
-    # Handle directory matches (when a path starts with pattern/)
-    if rel_str.startswith(pattern_normalized + "/"):
-        return True
-
-    # Handle simple filename matches
-    if pattern == rel_path.name:
-        return True
-
-    return False
+    return sorted(
+        file
+        for file_pattern in filepaths
+        for file in parse_filepath(file_pattern.strip(), recursive)
+        if file.suffix.lower() == ".py"
+        and not any_match(file, iter(exclusion_patterns))
+    )
