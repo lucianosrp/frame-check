@@ -98,9 +98,7 @@ def update_readme(dataframes: dict[str, pd.DataFrame]):
         table = df.replace({True: "✅", False: "❌"}).to_markdown(index=False)
         new_section += f"{table}\n\n"
 
-    new_section += (
-        "Note: some not-supported features may not be present in this list\n\n---"
-    )
+    new_section += "Note: the full list of supported features can be found [here](https://lucianosrp.github.io/frame-check/features/).\n\n---"
 
     # Replace the section with new content
     new_content = re.sub(support_section_pattern, new_section, content, flags=re.DOTALL)
