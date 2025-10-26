@@ -158,7 +158,7 @@ def update_features_toml(support_results) -> TOMLDocument | None:
     toml_path = "scripts/features.toml"
     if not os.path.exists(toml_path):
         print(f"Warning: {toml_path} not found, skipping TOML update.")
-        return
+        return None
 
     with open(toml_path, "r", encoding="utf-8") as f:
         doc = tomlkit.parse(f.read())
