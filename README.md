@@ -123,32 +123,27 @@ Each component should then have a README.md file with instructions on how to run
 
 ## Supported Features
 
-| feature_code | name | example | supported   |
-|:-------------|:-----|:--------|:------------|
-| <a id="#CAM-1"></a>CAM-1 | test_direct_column_assignment | `df["c"] = [7, 8, 9]` | ✅ |
-| <a id="#CAM-10"></a>CAM-10 | test_list_column_assignment | `df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]]` | ✅ |
-| <a id="#CAM-7"></a>CAM-7 | test_assign_create | 
-```python
-df = df.assign(A=[1, 2, 3])
-df["A"]
-``` | ❌ |
-| <a id="#CAM-7-1"></a>CAM-7-1 | CAM-7-1 | `df.assign(A=[1, 2, 3])["A"]` | ❌ |
-| <a id="#CAM-7-2"></a>CAM-7-2 | CAM-7-2 | 
-```python
-df = df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])
-df["A"]
-df["B"]
-``` | ❌ |
-| <a id="#CAM-9"></a>CAM-9 | test_insert | 
-```python
-df.insert(0, "A", [1, 2, 3])
-df["A"]
-``` | ✅ |
-| <a id="#DCMS-6"></a>DCMS-6 | test_read_csv_usecols | `N/A` | ✅ |
-| <a id="#DCMS-6-1"></a>DCMS-6-1 | DCMS-6-1 | `N/A` | ❌ |
+| id                        | title             | code                     | description               | supported   |
+|:--------------------------|:------------------|:-------------------------|:--------------------------|:------------|
+| <a id="CAM-1"></a>CAM-1   | Direct Assignment | df["c"] = [7, 8, 9]      | The most common method    | ✅          |
+|                           |                   |                          | for assigning values to a |             |
+|                           |                   |                          | column. If the column     |             |
+|                           |                   |                          | doesn't exist, it creates |             |
+|                           |                   |                          | a new one.                |             |
+| <a id="CAM-7"></a>CAM-7   | Assign Method     | df = df.assign(A=[1, 2,  | Returns a new DataFrame   | ❌          |
+|                           |                   | 3]) df["A"]              | with the column added or  |             |
+|                           |                   |                          | modified. Great for       |             |
+|                           |                   |                          | method chaining.          |             |
+| <a id="CAM-9"></a>CAM-9   | Insert Method     | df.insert(0, "A", [1, 2, | Inserts a column at a     | ✅          |
+|                           |                   | 3]) df["A"]              | specific position in the  |             |
+|                           |                   |                          | DataFrame. Modifies in    |             |
+|                           |                   |                          | place.                    |             |
+| <a id="CAM-10"></a>CAM-10 | Setitem With List | df[["c", "d"]] = [[7, 8, | Assigns multiple columns  | ✅          |
+|                           |                   | 9], [10, 11, 12]]        | at once, either from      |             |
+|                           |                   |                          | other columns or external |             |
+|                           |                   |                          | values.                   |             |
 
 Note: some not-supported features may not be present in this list
-
 
 ---
 

@@ -1,5 +1,6 @@
 import inspect
 import os
+import re
 from typing import NamedTuple
 
 import pandas as pd
@@ -115,6 +116,52 @@ def pytest_runtest_makereport(item, call):
             )
 
 
+def update_readme(dataframes: dict[str, pd.DataFrame]):
+    """
+    Update readme support tables
+    Update section under ## Supported Features header
+    """
+    readme_path = "README.md"
+    if not os.path.exists(readme_path):
+        print(f"Warning: {readme_path} not found, skipping update.")
+        return
+
+    # Read the README content
+    with open(readme_path, "r") as f:
+        content = f.read()
+
+    # Find the supported features section
+    support_section_pattern = r"## Supported Features\s*\n(.*?)\n---"
+    match = re.search(support_section_pattern, content, re.DOTALL)
+    if not match:
+        print("Warning: Could not find '## Supported Features' section in README.md")
+        return
+
+    # Build the new section content
+    new_section = "## Supported Features\n\n"
+
+    # Add each section's table
+    for section_name, df in dataframes.items():
+        # Add section heading
+        new_section += f"### {section_name}\n\n"
+
+        # Format the table
+        df["id"] = '<a id="' + df["id"] + '"></a>' + df["id"]
+        table = df.replace({True: "✅", False: "❌"}).to_markdown(index=False)
+        new_section += f"{table}\n\n"
+
+    new_section += (
+        "Note: some not-supported features may not be present in this list\n\n---"
+    )
+
+    # Replace the section with new content
+    new_content = re.sub(support_section_pattern, new_section, content, flags=re.DOTALL)
+
+    # Write back to README
+    with open(readme_path, "w") as f:
+        f.write(new_content)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Write support results to a file after all tests complete and update features.toml."""
     # Only write report if --support flag is enabled
@@ -128,6 +175,7 @@ def pytest_sessionfinish(session, exitstatus):
     doc = update_features_toml(_support_results)
     # Update the README.md file with support information
     if doc:
+        section_dfs = {}
         for section in doc:
             data = doc.get(section, {})
             data = [{"id": k, **v} for k, v in data.items()]
@@ -146,6 +194,9 @@ def pytest_sessionfinish(session, exitstatus):
                 print(section)
                 print()
                 print(df.to_markdown(index=False, tablefmt="rounded_grid"))
+                section_dfs[section] = df
+        if section_dfs:
+            update_readme(section_dfs)
         print()
         print()
 
