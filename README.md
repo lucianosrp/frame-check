@@ -123,25 +123,22 @@ Each component should then have a README.md file with instructions on how to run
 
 ## Supported Features
 
-| id                        | title             | code                     | description               | supported   |
-|:--------------------------|:------------------|:-------------------------|:--------------------------|:------------|
-| <a id="CAM-1"></a>CAM-1   | Direct Assignment | df["c"] = [7, 8, 9]      | The most common method    | ✅          |
-|                           |                   |                          | for assigning values to a |             |
-|                           |                   |                          | column. If the column     |             |
-|                           |                   |                          | doesn't exist, it creates |             |
-|                           |                   |                          | a new one.                |             |
-| <a id="CAM-7"></a>CAM-7   | Assign Method     | df = df.assign(A=[1, 2,  | Returns a new DataFrame   | ❌          |
-|                           |                   | 3]) df["A"]              | with the column added or  |             |
-|                           |                   |                          | modified. Great for       |             |
-|                           |                   |                          | method chaining.          |             |
-| <a id="CAM-9"></a>CAM-9   | Insert Method     | df.insert(0, "A", [1, 2, | Inserts a column at a     | ✅          |
-|                           |                   | 3]) df["A"]              | specific position in the  |             |
-|                           |                   |                          | DataFrame. Modifies in    |             |
-|                           |                   |                          | place.                    |             |
-| <a id="CAM-10"></a>CAM-10 | Setitem With List | df[["c", "d"]] = [[7, 8, | Assigns multiple columns  | ✅          |
-|                           |                   | 9], [10, 11, 12]]        | at once, either from      |             |
-|                           |                   |                          | other columns or external |             |
-|                           |                   |                          | values.                   |             |
+### dataframe_creation_methods
+
+| id                        | title    | code                                       | description                                  | supported   |
+|:--------------------------|:---------|:-------------------------------------------|:---------------------------------------------|:------------|
+| <a id="DCMS-6"></a>DCMS-6 | From Csv | pd.read_csv('file.csv', usecols=["a","b"]) | Loads data from a CSV file into a DataFrame. | ✅          |
+
+### column_assignment_methods
+
+| id                        | title             | code                                       | description                                                                                                 | supported   |
+|:--------------------------|:------------------|:-------------------------------------------|:------------------------------------------------------------------------------------------------------------|:------------|
+| <a id="CAM-1"></a>CAM-1   | Direct Assignment | df["c"] = [7, 8, 9]                        | The most common method for assigning values to a column. If the column doesn't exist, it creates a new one. | ✅          |
+| <a id="CAM-7"></a>CAM-7   | Assign Method     | df = df.assign(A=[1, 2, 3])                | Returns a new DataFrame with the column added or modified. Great for method chaining.                       | ❌          |
+|                           |                   | df["A"]                                    |                                                                                                             |             |
+| <a id="CAM-9"></a>CAM-9   | Insert Method     | df.insert(0, "A", [1, 2, 3])               | Inserts a column at a specific position in the DataFrame. Modifies in place.                                | ✅          |
+|                           |                   | df["A"]                                    |                                                                                                             |             |
+| <a id="CAM-10"></a>CAM-10 | Setitem With List | df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]] | Assigns multiple columns at once, either from other columns or external values.                             | ✅          |
 
 Note: some not-supported features may not be present in this list
 

@@ -184,8 +184,6 @@ def pytest_sessionfinish(session, exitstatus):
             df = df.assign(
                 supported=df["supported"].map({True: "✅", False: "❌"}),
                 id=df["id"].str.replace("_", "-").str.upper(),
-                description=df["description"].str.wrap(25),
-                code=df["code"].str.wrap(25),
                 title=df["title"].str.title(),
             ).drop(columns=["tested"])
             if not df.empty:
@@ -193,7 +191,12 @@ def pytest_sessionfinish(session, exitstatus):
                 print()
                 print(section)
                 print()
-                print(df.to_markdown(index=False, tablefmt="rounded_grid"))
+                print(
+                    df.assign(
+                        description=df["description"].str.wrap(25),
+                        code=df["code"].str.wrap(25),
+                    ).to_markdown(index=False, tablefmt="rounded_grid")
+                )
                 section_dfs[section] = df
         if section_dfs:
             update_readme(section_dfs)
