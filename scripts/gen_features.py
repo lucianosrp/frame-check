@@ -53,7 +53,18 @@ for section_name, section_content in features_data.items():
         content.append(f"## {item_code}: {item_data['title']}\n")
         content.append("```python\n" + item_data["code"] + "\n```\n")
         content.append(item_data["description"] + "\n\n")
-        content.append(item_data["description"] + "\n\n")
+
+        # Determine status icon based on testing and support
+        status = (
+            "**Supported :material-check-all:**"
+            if item_data["tested"] and item_data["supported"]
+            else "**Tested but not supported :material-check:**"
+            if item_data["tested"]
+            else "**Not Supported :material-close:**"
+        )
+
+        # Add status line with tested indicator
+        content.append(f"{status}\n\n")
 
     # Write the content to a markdown file using mkdocs_gen_files
     doc_path = Path("features", f"{section_name}.md")
@@ -73,6 +84,7 @@ index_content = ["# Pandas Features\n\n"]
 index_content.append(
     "Frame-check supports various pandas features and usage patterns:\n\n"
 )
+
 
 for section_name, section_content in features_data.items():
     section_title = snake_to_title_case(section_name)
