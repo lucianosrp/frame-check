@@ -158,7 +158,7 @@ supported = false
 
 [column_assignment_methods.cam_7]
 title = "assign method"
-code = "df = df.assign(A=[1, 2, 3])\ndf[\"A\"]"
+code = "df = df.assign(A=[1, 2, 3])"
 description = "Returns a new DataFrame with the column added or modified. Great for method chaining."
 tested = true
 supported = false
@@ -172,7 +172,7 @@ supported = false
 
 [column_assignment_methods.cam_9]
 title = "insert method"
-code = "df.insert(0, \"A\", [1, 2, 3])\ndf[\"A\"]"
+code = "df.insert(0, \"A\", [1, 2, 3])"
 description = "Inserts a column at a specific position in the DataFrame. Modifies in place."
 tested = true
 supported = true
