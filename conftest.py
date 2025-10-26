@@ -1,4 +1,3 @@
-import inspect
 import os
 import re
 from typing import NamedTuple
@@ -13,7 +12,6 @@ from tomlkit.toml_document import TOMLDocument
 class SupportResult(NamedTuple):
     feature_code: str
     name: str
-    example: str
     supported: bool
 
 
@@ -37,51 +35,6 @@ def pytest_configure(config):
     )
 
 
-def extract_example_from_test(item):
-    """Extract the code example from test function, skipping first two lines."""
-    try:
-        # Get the test function source code
-        source = inspect.getsource(item.function)
-
-        # Find the `code = """` block
-        lines = source.split("\n")
-
-        # Find start of triple-quoted string
-        start_idx = None
-        for i, line in enumerate(lines):
-            if 'code = """' in line or "code = '''" in line:
-                start_idx = i + 1  # Start after the opening line
-                break
-
-        if start_idx is None:
-            return "N/A"
-
-        # Find end of triple-quoted string
-        end_idx = None
-        for i in range(start_idx, len(lines)):
-            if '"""' in lines[i] or "'''" in lines[i]:
-                end_idx = i
-                break
-
-        if end_idx is None:
-            return "N/A"
-
-        # Extract the code lines
-        code_lines = lines[start_idx:end_idx]
-
-        # Skip first two lines (import pandas and DataFrame creation)
-        if len(code_lines) > 2:
-            example_lines = code_lines[2:]
-            # Remove leading whitespace and join
-            example = "\n".join(line.strip() for line in example_lines if line.strip())
-            return example
-
-        return "N/A"
-
-    except Exception:
-        return "N/A"
-
-
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     """Capture test results for tests marked with @support."""
@@ -100,17 +53,12 @@ def pytest_runtest_makereport(item, call):
             # Get the feature name from the marker
             feature_name = support_marker.kwargs.get("name")
             feature_code = support_marker.kwargs.get("code", "")
-            # Try to get example from marker, otherwise extract from code
-            feature_example = support_marker.kwargs.get(
-                "example", extract_example_from_test(item)
-            )
 
             # Store whether the test passed
             _support_results.append(
                 SupportResult(
                     feature_code,
                     feature_name,
-                    feature_example,
                     report.outcome == "passed",
                 )
             )
@@ -207,7 +155,7 @@ def pytest_sessionfinish(session, exitstatus):
 def update_features_toml(support_results) -> TOMLDocument | None:
     """
     Update features.toml with tested and supported status from test results.
-    Only update title if name is provided, and code if example is provided.
+    Only update title if name is provided
     """
     toml_path = "scripts/features.toml"
     if not os.path.exists(toml_path):
@@ -238,15 +186,10 @@ def update_features_toml(support_results) -> TOMLDocument | None:
             section, key, entry = features_by_code[code]
             entry["tested"] = True
             entry["supported"] = bool(result.supported)
-            # Only update code if example is provided and not "N/A"
-            if getattr(result, "example", None) and result.example != "N/A":
-                entry["code"] = result.example
             # Only update title if name is provided and not empty
             if getattr(result, "name", None) and result.name:
                 entry["title"] = result.name
-            # If name is not provided, keep the TOML's existing title
         else:
-            # Optionally add new features here if desired
             pass
 
     with open(toml_path, "w", encoding="utf-8") as f:
