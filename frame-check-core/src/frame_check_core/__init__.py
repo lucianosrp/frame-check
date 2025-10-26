@@ -127,7 +127,7 @@ def main(argv: list[str] | None = None, config: Config | None = None) -> int:
             fc = FrameChecker.check(file_path)
             if fc.diagnostics:
                 has_errors = True
-                print_diagnostics(fc, str(file_path))
+                print_diagnostics(fc)
 
         except SyntaxError as e:
             print(f"Syntax error in {file_path}:\n{e}", file=sys.stderr)

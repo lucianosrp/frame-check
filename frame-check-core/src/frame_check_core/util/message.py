@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING
 
+from frame_check_core.models.diagnostic import CodeSource
+
 if TYPE_CHECKING:
     from ..frame_checker import FrameChecker
     from ..models.diagnostic import Diagnostic
@@ -25,14 +27,12 @@ UNDERLINE_FORMAT = "{spaces:>{width}} {gutter} {indent}{color}{underline}{reset}
 HINT_LINE_FORMAT = "{spaces:>{width}} {gutter}  {hint_line}"
 
 
-def print_diagnostics(
-    fc: "FrameChecker", path: str, file=None, color: bool = True
-) -> None:
+def print_diagnostics(fc: "FrameChecker", file=None, color: bool = True) -> None:
     """Print formatted diagnostics to stdout or a specified file."""
     if not fc.diagnostics:
         return
 
-    lines = fc.source.splitlines() if fc.source else []
+    lines = fc.source.code.splitlines() if fc.source.is_traceable else []
 
     for diag in fc.diagnostics:
         # Calculate max line number width for proper alignment
@@ -41,7 +41,7 @@ def print_diagnostics(
             max_line_num = max(max_line_num, diag.data_source_location[0])
         line_width = len(str(max_line_num))
 
-        _print_error_header(diag, path, line_width, file=file, color=color)
+        _print_error_header(diag, fc.source, line_width, file=file, color=color)
         _print_code_line(
             diag.location,
             lines,
@@ -58,21 +58,25 @@ def print_diagnostics(
 
 
 def _print_error_header(
-    diag: "Diagnostic", path: str, line_width: int, file=None, color: bool = True
+    diag: "Diagnostic",
+    source: CodeSource,
+    line_width: int,
+    file=None,
+    color: bool = True,
 ) -> None:
-    """Print the error header line with file path and message."""
+    """Print the error header line with source and message."""
     line_num, col_num = diag.location
     if color:
         diag_color = RED if diag.severity.value == ERROR_VALUE else YELLOW
     else:
         diag_color = ""
     location_string = LOCATION_FORMAT.format(
-        path=path,
+        path=source.path.name if source.path is not None else "",
         line_num=line_num,
         col_num=col_num + 1,
         severity=diag.severity,
         message=diag.message,
-    )
+    ).lstrip(":")  # Remove leading colon if path is empty
     print(
         f"{BOLD if color else ''}{diag_color}{location_string}{RESET if color else ''}",
         file=file,

@@ -23,33 +23,41 @@ def set_assigning(node: ast.Subscript) -> None:
     setattr(node, _ASSIGNING_ATTR, True)
 
 
-def get_value(node: ast.AST) -> Result:
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    elif isinstance(node, ast.List):
-        elements = []
-        for elt in node.elts:
-            parsed_elt = get_result(elt)
-            elements.append(parsed_elt)
-        return elements
-    elif isinstance(node, ast.Dict):
-        result_dict = {}
-        for key_node, value_node in zip(node.keys, node.values):
-            if key_node is None:
-                continue
-            key = get_result(key_node)
-            value = get_result(value_node)
-            result_dict[key] = value
-        return result_dict
-    else:
-        return Unknown
+def get_value(node: ast.AST, definitions: dict[str, Result]) -> Result:
+    match node:
+        case ast.Constant(value=str(result)):
+            return result
+
+        case ast.List(elts=elts):
+            elements = []
+            for elt in elts:
+                parsed_elt = get_value(elt, definitions)
+                elements.append(parsed_elt)
+            return elements
+
+        case ast.Name(id=name):
+            # Look up variable value in definitions
+            return definitions.get(name, Unknown)
+
+        case ast.Dict(keys=keys, values=values):
+            result_dict = {}
+            for key_node, value_node in zip(keys, values):
+                if key_node is None:
+                    continue
+                key = get_result(key_node, definitions)
+                value = get_result(value_node, definitions)
+                result_dict[key] = value
+            return result_dict
+
+        case _:
+            return Unknown
 
 
-def get_result(node: ast.AST) -> Result:
+def get_result(node: ast.AST, definitions: dict[str, Result]) -> Result:
     if hasattr(node, _RESULT_ATTR):
         return getattr(node, _RESULT_ATTR)
     else:
-        return get_value(node)
+        return get_value(node, definitions)
 
 
 def set_result(node: ast.AST, result: Result) -> None:
@@ -59,9 +67,14 @@ def set_result(node: ast.AST, result: Result) -> None:
 def parse_args(
     args: list[ast.expr],
     keywords: list[ast.keyword],
+    definitions: dict[str, Result],
 ) -> tuple[list[Result], dict[str, Result]]:
-    argsv = [get_result(arg) for arg in args]
-    keywordsv = {kw.arg: get_result(kw.value) for kw in keywords if kw.arg is not None}
+    argsv = [get_result(arg, definitions) for arg in args]
+    keywordsv = {
+        kw.arg: get_result(kw.value, definitions)
+        for kw in keywords
+        if kw.arg is not None
+    }
     return argsv, keywordsv
 
 
@@ -112,14 +125,20 @@ class PDMethod:
         self.func = func
 
     def __call__(
-        self, args: list[ast.expr], keywords: list[ast.keyword]
+        self,
+        args: list[ast.expr],
+        keywords: list[ast.keyword],
+        definitions: dict[str, Result] | None = None,
     ) -> PDMethodResult:
         """
         Returns a tuple with two elements:
         - The first element is the created dataframe, if any.
         - The second element is an `IllegalAccess` instance representing an error if the method call is illegal, or `None` if there is no error.
         """
-        argsv, keywordsv = parse_args(args, keywords)
+        # If definitions is not provided, fall back to empty dict (for backward compatibility)
+        if definitions is None:
+            definitions = {}
+        argsv, keywordsv = parse_args(args, keywords, definitions)
         returned, error = self.func(argsv, keywordsv)
         return DF(returned) if returned is not None else None, error
 
@@ -157,7 +176,10 @@ class DFMethod:
         self.func = func
 
     def __call__(
-        self, args: list[ast.expr], keywords: list[ast.keyword]
+        self,
+        args: list[ast.expr],
+        keywords: list[ast.keyword],
+        definitions: dict[str, Result] | None = None,
     ) -> DFMethodResult:
         """
         Returns a tuple with three elements:
@@ -165,6 +187,8 @@ class DFMethod:
         - The second element is the returned dataframe, if any.
         - The third element is an `IllegalAccess` instance representing an error if the method call is illegal, or `None` if there is no error.
         """
-        argsv, keywordsv = parse_args(args, keywords)
+        if definitions is None:
+            definitions = {}
+        argsv, keywordsv = parse_args(args, keywords, definitions)
         updated, returned, error = self.func(self.df.columns.copy(), argsv, keywordsv)
         return DF(updated), DF(returned) if returned is not None else None, error
