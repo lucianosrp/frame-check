@@ -125,18 +125,32 @@ Each component should then have a README.md file with instructions on how to run
 
 ## Supported Features
 
-| feature_code                    | name                        | example                                                          | supported   |
-|:--------------------------------|:----------------------------|:-----------------------------------------------------------------|:------------|
-| <a id="#CAM-1"></a>#CAM-1       | Direct column assignment    | df["c"] = [7, 8, 9]                                              | ✅          |
-| <a id="#CAM-10"></a>#CAM-10     | Set Item with list          | df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]]                       | ✅          |
-| <a id="#CAM-7"></a>#CAM-7       | df.assign                   | df.assign(A=[1, 2, 3])                                           | ❌          |
-| <a id="#CAM-7-1"></a>#CAM-7-1   | df.assign + subscript       | df.assign(A=[1, 2, 3])['A']                                      | ❌          |
-| <a id="#CAM-7-2"></a>#CAM-7-2   | df.assign chaining          | df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])                       | ❌          |
-| <a id="#CAM-9"></a>#CAM-9       | df.insert                   | df.insert(0, "A", [1, 2, 3])                                     | ✅          |
-| <a id="#DCMS-6"></a>#DCMS-6     | read_csv + usecols inline   | df = pd.read_csv('file.csv', usecols=['a', 'b', 'c'])            | ✅          |
-| <a id="#DCMS-6-1"></a>#DCMS-6-1 | read_csv + usecols indirect | cols=['a', 'b', 'c']; df = pd.read_csv('file.csv', usecols=cols) | ❌          |
+| feature_code | name | example | supported   |
+|:-------------|:-----|:--------|:------------|
+| <a id="#CAM-1"></a>CAM-1 | test_direct_column_assignment | `df["c"] = [7, 8, 9]` | ✅ |
+| <a id="#CAM-10"></a>CAM-10 | test_list_column_assignment | `df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]]` | ✅ |
+| <a id="#CAM-7"></a>CAM-7 | test_assign_create | 
+```python
+df = df.assign(A=[1, 2, 3])
+df["A"]
+``` | ❌ |
+| <a id="#CAM-7-1"></a>CAM-7-1 | CAM-7-1 | `df.assign(A=[1, 2, 3])["A"]` | ❌ |
+| <a id="#CAM-7-2"></a>CAM-7-2 | CAM-7-2 | 
+```python
+df = df.assign(A=[1, 2, 3]).assign(B=[4, 5, 6])
+df["A"]
+df["B"]
+``` | ❌ |
+| <a id="#CAM-9"></a>CAM-9 | test_insert | 
+```python
+df.insert(0, "A", [1, 2, 3])
+df["A"]
+``` | ✅ |
+| <a id="#DCMS-6"></a>DCMS-6 | test_read_csv_usecols | `N/A` | ✅ |
+| <a id="#DCMS-6-1"></a>DCMS-6-1 | DCMS-6-1 | `N/A` | ❌ |
 
 Note: some not-supported features may not be present in this list
+
 
 ---
 

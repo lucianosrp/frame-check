@@ -159,7 +159,6 @@ class FrameChecker(ast.NodeVisitor):
 
     @override
     def visit_Name(self, node):
-        self.generic_visit(node)
         if node.id in self.definitions:
             set_result(node, self.definitions[node.id])
 

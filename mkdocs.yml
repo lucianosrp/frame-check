@@ -72,5 +72,7 @@ markdown_extensions:
       separator: +
       strict: false
       camel_case: false
+  - toc:
+      permalink: ¶
   - pymdownx.tabbed:
       alternate_style: true

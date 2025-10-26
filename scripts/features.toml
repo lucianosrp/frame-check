@@ -4,208 +4,290 @@
 title = "Dictionary of Lists"
 code = """pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})"""
 description = "Creates a DataFrame from a dictionary where keys become column names and list values become the data for each column. This is fully supported in frame-check as the primary use case."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_2]
 title = "List of Dictionaries"
 code = """pd.DataFrame([{'col1': 1, 'col2': 3}, {'col1': 2, 'col2': 4}])"""
-description = "Creates a DataFrame where each dictionary represents a row, with keys as column names. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame where each dictionary represents a row, with keys as column names."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_3]
 title = "Dictionary of Series"
 code = """pd.DataFrame({'col1': pd.Series([1, 2]), 'col2': pd.Series([3, 4])})"""
-description = "Similar to dictionary of lists, but uses pandas Series objects instead. This creation method is not yet implemented in frame-check."
+description = "Similar to dictionary of lists, but uses pandas Series objects instead."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_4]
 title = "NumPy Array"
 code = """pd.DataFrame(np.array([[1, 2], [3, 4]]), columns=['col1', 'col2'])"""
-description = "Creates a DataFrame from a NumPy array with explicitly defined column names. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame from a NumPy array with explicitly defined column names."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_5]
 title = "List of Lists"
 code = """pd.DataFrame([[1, 2], [3, 4]], columns=['col1', 'col2'])"""
-description = "Creates a DataFrame where each inner list represents a row, with column names provided separately. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame where each inner list represents a row, with column names provided separately."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_6]
 title = "From CSV"
-code = """pd.read_csv('file.csv')"""
-description = "Loads data from a CSV file into a DataFrame. This creation method is not yet implemented in frame-check."
+code = """pd.read_csv('file.csv', usecols=["a","b"])"""
+description = "Loads data from a CSV file into a DataFrame."
+tested = true
+supported = true
 
 [dataframe_creation_methods.dcms_7]
 title = "From JSON"
 code = """pd.read_json('file.json')"""
-description = "Loads data from a JSON file into a DataFrame. This creation method is not yet implemented in frame-check."
+description = "Loads data from a JSON file into a DataFrame."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_8]
 title = "From SQL"
 code = """pd.read_sql('SELECT * FROM table', connection)"""
-description = "Loads data from a SQL query into a DataFrame. This creation method is not yet implemented in frame-check."
+description = "Loads data from a SQL query into a DataFrame."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_9]
 title = "From Excel"
 code = """pd.read_excel('file.xlsx')"""
-description = "Loads data from an Excel file into a DataFrame. This creation method is not yet implemented in frame-check."
+description = "Loads data from an Excel file into a DataFrame."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_10]
 title = "From Parquet"
 code = """pd.read_parquet('file.parquet')"""
-description = "Loads data from a Parquet file into a DataFrame. This creation method is not yet implemented in frame-check."
+description = "Loads data from a Parquet file into a DataFrame."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_11]
 title = "Empty DataFrame"
 code = """pd.DataFrame()"""
-description = "Creates an empty DataFrame with no columns or rows. This creation method is not yet implemented in frame-check."
+description = "Creates an empty DataFrame with no columns or rows."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_12]
 title = "From Index"
 code = """pd.DataFrame(index=['a', 'b'], columns=['col1', 'col2'])"""
-description = "Creates an empty DataFrame with specified index and columns. This creation method is not yet implemented in frame-check."
+description = "Creates an empty DataFrame with specified index and columns."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_13]
 title = "From Scalar"
 code = """pd.DataFrame({'col1': 1}, index=[0, 1, 2])"""
-description = "Creates a DataFrame by broadcasting scalar values across specified indices. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame by broadcasting scalar values across specified indices."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_14]
 title = "Copy Constructor"
 code = """pd.DataFrame(other_df)"""
-description = "Creates a DataFrame as a copy of another DataFrame. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame as a copy of another DataFrame."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_15]
 title = "From Records"
 code = """pd.DataFrame.from_records([('a', 1), ('b', 2)], columns=['col1', 'col2'])"""
-description = "Creates a DataFrame from a structured array, records, or sequence of tuples. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame from a structured array, records, or sequence of tuples."
+tested = false
+supported = false
 
 [dataframe_creation_methods.dcms_16]
 title = "From Dict"
 code = """pd.DataFrame.from_dict({'col1': [1, 2], 'col2': [3, 4]})"""
-description = "Creates a DataFrame from a dictionary using the class method. This creation method is not yet implemented in frame-check."
+description = "Creates a DataFrame from a dictionary using the class method."
+tested = false
+supported = false
 
 [column_assignment_methods]
 
 [column_assignment_methods.cam_1]
 title = "Direct assignment"
-code = """df['col'] = value"""
+code = "df[\"c\"] = [7, 8, 9]"
 description = "The most common method for assigning values to a column. If the column doesn't exist, it creates a new one."
+tested = true
+supported = true
 
 [column_assignment_methods.cam_2]
 title = "Attribute assignment"
 code = """df.col = value"""
 description = "Works only for valid Python identifiers. Not recommended for production code due to potential conflicts with DataFrame methods."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_3]
 title = "loc indexer"
 code = """df.loc[:, 'col'] = value"""
 description = "Label-based column assignment that can assign to slices or selections of rows."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_4]
 title = "iloc indexer"
 code = """df.iloc[:, index] = value"""
 description = "Position-based assignment that uses integer indices instead of column labels."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_5]
 title = "at indexer"
 code = """df.at[row, 'col'] = value"""
 description = "For single cell assignment based on labels. Faster than loc for single-cell operations."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_6]
 title = "iat indexer"
 code = """df.iat[row, col_idx] = value"""
 description = "Single cell assignment by position. Faster than iloc for single-cell operations."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_7]
 title = "assign method"
-code = """df = df.assign(col=value)"""
+code = "df = df.assign(A=[1, 2, 3])\ndf[\"A\"]"
 description = "Returns a new DataFrame with the column added or modified. Great for method chaining."
+tested = true
+supported = false
 
 [column_assignment_methods.cam_8]
 title = "Multiple assign"
 code = """df = df.assign(B=1, C=2)"""
 description = "Creates multiple columns at once using keyword arguments."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_9]
 title = "insert method"
-code = """df.insert(loc, 'col', value)"""
+code = "df.insert(0, \"A\", [1, 2, 3])\ndf[\"A\"]"
 description = "Inserts a column at a specific position in the DataFrame. Modifies in place."
+tested = true
+supported = true
 
 [column_assignment_methods.cam_10]
 title = "setitem with list"
-code = """df[['X','Y']] = df[['A','B']]"""
+code = "df[[\"c\", \"d\"]] = [[7, 8, 9], [10, 11, 12]]"
 description = "Assigns multiple columns at once, either from other columns or external values."
+tested = true
+supported = true
 
 [column_assignment_methods.cam_11]
 title = "From dictionary"
 code = """df = pd.DataFrame({'A': [1,2], 'B': [3,4]})"""
 description = "Creates a DataFrame with the specified columns directly in the constructor."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_12]
 title = "concat"
 code = """df = pd.concat([df, new_df], axis=1)"""
 description = "Combines columns from two DataFrames through horizontal concatenation."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_13]
 title = "join"
 code = """df = df.join(other_df)"""
 description = "Adds columns from another DataFrame based on index alignment."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_14]
 title = "merge"
 code = """df = df.merge(df2, on='key')"""
 description = "Adds columns through merging DataFrames on common columns or indices."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_15]
 title = "From eval"
 code = """df.eval('C = A * 2', inplace=True)"""
 description = "Creates columns using string expressions evaluated against the DataFrame."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_16]
 title = "From query results"
 code = """df['new'] = df.query('A > 0')['B']"""
 description = "Assigns values from a filtered subset of another column."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_17]
 title = "Conditional assignment"
 code = """df.loc[df['A'] > 0, 'B'] = 1"""
 description = "Updates columns only for rows matching a condition."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_18]
 title = "Copy from another column"
 code = """df['B'] = df['A'].copy()"""
 description = "Creates an explicit copy of another column."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_19]
 title = "Transform operations"
 code = """df['B'] = df['A'].apply(lambda x: x*2)"""
 description = "Creates columns from transformations applied to existing columns."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_20]
 title = "Expanding columns"
 code = """df[['A','B']] = df['combined'].str.split(expand=True)"""
 description = "Creates multiple columns from string operations that expand data."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_21]
 title = "From groupby"
 code = """df['new'] = df.groupby('A')['B'].transform('mean')"""
 description = "Creates columns containing aggregated results broadcast back to the original DataFrame's shape."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_22]
 title = "From pivot"
 code = """df.pivot(columns='A')"""
 description = "Creates multiple columns through pivot operations that reshape the DataFrame."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_23]
 title = "From unstack"
 code = """df = df.unstack()"""
 description = "Converts index levels to columns in a multi-index DataFrame."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_24]
 title = "From pd.get_dummies"
 code = """df = pd.get_dummies(df, columns=['A'])"""
 description = "Creates multiple binary indicator columns from categorical columns."
+tested = false
+supported = false
 
 [column_assignment_methods.cam_25]
 title = "Update method"
 code = """df.update(other_df[['A']])"""
 description = "Updates existing columns with values from another DataFrame."
+tested = false
+supported = false
 
 [column_removal_methods]
 
@@ -213,66 +295,92 @@ description = "Updates existing columns with values from another DataFrame."
 title = "del statement"
 code = """del df['A']"""
 description = "In-place removal of a column using the Python del statement."
+tested = false
+supported = false
 
 [column_removal_methods.crm_2]
 title = "drop method"
 code = """df = df.drop('A', axis=1)"""
 description = "Returns a new DataFrame with the specified column removed."
+tested = false
+supported = false
 
 [column_removal_methods.crm_3]
 title = "drop with columns"
 code = """df = df.drop(columns=['A', 'B'])"""
 description = "More explicit way to drop columns using the columns parameter."
+tested = false
+supported = false
 
 [column_removal_methods.crm_4]
 title = "drop multiple"
 code = """df = df.drop(['A','B'], axis=1)"""
 description = "Removes multiple columns at once using a list of column names."
+tested = false
+supported = false
 
 [column_removal_methods.crm_5]
 title = "pop method"
 code = """removed = df.pop('A')"""
 description = "Removes a column from the DataFrame and returns it as a Series."
+tested = false
+supported = false
 
 [column_removal_methods.crm_6]
 title = "Assign None"
 code = """df = df.assign(col=None)"""
 description = "Indirect method of column removal by assigning None (not common)."
+tested = false
+supported = false
 
 [column_removal_methods.crm_7]
 title = "Select subset"
 code = """df = df[['A', 'B']]"""
 description = "Keeps only the specified columns, effectively removing all others."
+tested = false
+supported = false
 
 [column_removal_methods.crm_8]
 title = "loc selection"
 code = """df = df.loc[:, ['A', 'B']]"""
 description = "Label-based selection that keeps only the specified columns."
+tested = false
+supported = false
 
 [column_removal_methods.crm_9]
 title = "iloc selection"
 code = """df = df.iloc[:, [0, 1]]"""
 description = "Position-based selection that keeps only columns at specified indices."
+tested = false
+supported = false
 
 [column_removal_methods.crm_10]
 title = "Boolean mask"
 code = """df = df.loc[:, ~df.columns.str.startswith('temp')]"""
 description = "Uses boolean masking to remove columns based on conditions."
+tested = false
+supported = false
 
 [column_removal_methods.crm_11]
 title = "filter method"
 code = """df = df.filter(regex='^[AB]')"""
 description = "Keeps columns that match certain patterns, removing all others."
+tested = false
+supported = false
 
 [column_removal_methods.crm_12]
 title = "drop_duplicates"
 code = """df = df.T.drop_duplicates().T"""
 description = "Can indirectly remove columns when applied after transposing."
+tested = false
+supported = false
 
 [column_removal_methods.crm_13]
 title = "reindex"
 code = """df = df.reindex(columns=['A','B'])"""
 description = "Keeps only specified columns and reorders them, removing all others."
+tested = false
+supported = false
 
 [edge_cases]
 
@@ -280,48 +388,68 @@ description = "Keeps only specified columns and reorders them, removing all othe
 title = "MultiIndex columns"
 code = """df.columns = pd.MultiIndex.from_tuples([('A', 'one'), ('A', 'two'), ('B', 'one')])"""
 description = "Creates complex hierarchical column structures that require special handling."
+tested = false
+supported = false
 
 [edge_cases.ec_2]
 title = "Rename operations"
 code = """df = df.rename(columns={'old': 'new'})"""
 description = "Changes column names while preserving their data and position."
+tested = false
+supported = false
 
 [edge_cases.ec_3]
 title = "Set operations"
 code = """df.columns = ['A', 'B', 'C']"""
 description = "Completely replaces the column structure with a new set of names."
+tested = false
+supported = false
 
 [edge_cases.ec_4]
 title = "Arithmetic operations"
 code = """df['C'] = df['A'] + df['B']"""
 description = "Creates new columns through arithmetic operations on existing columns."
+tested = false
+supported = false
 
 [edge_cases.ec_5]
 title = "String accessor"
 code = """df[['first', 'last']] = df['name'].str.split(expand=True)"""
 description = "Expands string content into multiple new columns."
+tested = false
+supported = false
 
 [edge_cases.ec_6]
 title = "JSON normalization"
 code = """pd.json_normalize(data)"""
 description = "Creates columns with nested names from hierarchical data."
+tested = false
+supported = false
 
 [edge_cases.ec_7]
 title = "Pivot operations"
 code = """df.pivot_table(index='date', columns='category', values='amount')"""
 description = "Dramatically reshapes the column structure based on unique values."
+tested = false
+supported = false
 
 [edge_cases.ec_8]
 title = "Stack/unstack"
 code = """df = df.stack().unstack(level=0)"""
 description = "Converts between index levels and columns, potentially changing column names."
+tested = false
+supported = false
 
 [edge_cases.ec_9]
 title = "Transpose"
 code = """df = df.T"""
 description = "Swaps rows and columns, turning row indices into column names."
+tested = false
+supported = false
 
 [edge_cases.ec_10]
 title = "Column assignment in chain"
 code = """df.assign(B=1).assign(C=lambda x: x['B']*2)"""
 description = "Creates columns that depend on columns created earlier in the same chain."
+tested = false
+supported = false

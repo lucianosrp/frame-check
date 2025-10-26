@@ -33,7 +33,10 @@ for section_name, section_content in features_data.items():
     content = [f"# {section_title}\n\n"]
 
     # Sort items by their keys to maintain order
-    sorted_items = sorted(section_content.items())
+    sorted_items = sorted(
+        section_content.items(),
+        key=lambda x: tuple(int(n) if n.isdigit() else n for n in x[0].split("_")),
+    )
 
     # Add each feature to the content
     for item_key, item_data in sorted_items:
@@ -49,6 +52,7 @@ for section_name, section_content in features_data.items():
         # Add the item header and content
         content.append(f"## {item_code}: {item_data['title']}\n")
         content.append("```python\n" + item_data["code"] + "\n```\n")
+        content.append(item_data["description"] + "\n\n")
         content.append(item_data["description"] + "\n\n")
 
     # Write the content to a markdown file using mkdocs_gen_files
