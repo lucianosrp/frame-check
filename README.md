@@ -138,7 +138,7 @@ Each component should then have a README.md file with instructions on how to run
 | <a id="CAM-9"></a>CAM-9   | Insert Method     | df.insert(0, "A", [1, 2, 3])               | Inserts a column at a specific position in the DataFrame. Modifies in place.                                | ✅          |
 | <a id="CAM-10"></a>CAM-10 | Setitem With List | df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]] | Assigns multiple columns at once, either from other columns or external values.                             | ✅          |
 
-Note: some not-supported features may not be present in this list
+Note: the full list of supported features can be found [here](https://lucianosrp.github.io/frame-check/features/).
 
 ---
 

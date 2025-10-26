@@ -9,40 +9,34 @@ The core static analysis engine for frame-check that tracks pandas DataFrame sch
 - **`FrameChecker`**: Main AST visitor that tracks DataFrame definitions and column accesses
 - **`FrameInstance`**: Represents a DataFrame with its columns and metadata
 - **`FrameHistory`**: Tracks DataFrame definitions across different lines for proper scoping
-- **`ColumnAccess`**: Represents an attempt to access a column with context information
-- **`WrappedNode`**: Type-safe wrapper for AST nodes with convenient attribute access
 
-### WrappedNode Deep Dive
+### Structural Pattern Matching
 
-The `WrappedNode` class is a crucial component that provides type-safe, chainable access to AST node attributes. It solves a common problem when working with Python's AST: safely accessing nested attributes without risking `AttributeError` exceptions.
+The Frame Check Core leverages Python's structural pattern matching to efficiently analyze and track DataFrame schemas. This approach allows for precise and readable code when handling complex AST nodes.
 
-#### Key Features
+#### Consider using Pattern Matching
 
-**Safe Attribute Access**: Instead of manually checking if attributes exist, `WrappedNode` returns empty nodes for missing attributes, allowing for safe method chaining:
+**Pattern Matching**: Simplifies the process of dissecting and interpreting AST nodes by using pattern matching to directly access relevant attributes:
 
 ```python
-# Without WrappedNode - brittle and verbose
-if hasattr(node, 'value') and hasattr(node.value, 'func') and hasattr(node.value.func, 'id'):
-    func_name = node.value.func.id
-else:
-    func_name = None
-
-# With WrappedNode - clean and safe
-func_name = WrappedNode(node).get("value").get("func").get("id").val
+# Example of pattern matching in FrameChecker
+match node:
+    case ast.Call(func=ast.Attribute(value=ast.Name(), attr=attr), args=args, keywords=keywords):
+        if method := PD.get_method(attr):
+            created, error = method(args, keywords, self.definitions)
+            # Further processing...
 ```
 
-**Type Safety**: The class uses generic types and method overloads to provide proper type hints, making the code more maintainable and catching errors at development time.
+**Enhanced Readability**: Reduces boilerplate code and improves readability by clearly defining patterns for AST node structures.
 
-**Consistent Interface**: All AST node interactions go through the same `.get()` method, providing a uniform API regardless of the underlying node type.
+**Efficient Error Handling**: By matching specific patterns, errors can be caught and handled gracefully, improving the robustness of the static analysis engine.
 
-#### Why Use WrappedNode?
+#### Why Use Structural Pattern Matching?
 
-1. **Eliminates Boilerplate**: Reduces the need for repeated `hasattr()` checks and defensive programming
-2. **Prevents Runtime Crashes**: Gracefully handles missing attributes without throwing exceptions
-3. **Improves Readability**: Method chaining makes the intent clear and code more concise
-4. **Better Developer Experience**: Type hints provide autocomplete and catch errors early
-5. **Consistent Error Handling**: All attribute access failures result in `None` values, making error handling predictable
-
+1. **Simplifies Code**: Reduces the complexity of AST node traversal and manipulation.
+2. **Improves Maintainability**: Patterns provide a clear structure, making the code easier to understand and modify.
+3. **Boosts Performance**: Directly accesses node attributes without multiple conditional checks.
+4. **Enhances Debugging**: Clearly defined patterns make it easier to trace and debug issues within the AST analysis.
 
 ## Important Notes for Static Analysis
 
@@ -55,3 +49,4 @@ func_name = WrappedNode(node).get("value").get("func").get("id").val
 7. **External data**: `pd.read_csv()`, `pd.read_excel()` etc. introduce columns from files
 8. **SQL queries**: `pd.read_sql()` columns depend on query
 9. **Copy vs view**: Some operations create views that share column structure
+```
