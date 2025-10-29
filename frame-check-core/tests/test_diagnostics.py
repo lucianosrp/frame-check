@@ -33,7 +33,7 @@ df["NonExistentColumn"]
                 end=(15, 22),
             ),
             hint=[
-                "DataFrame 'df' created at line 11:0 with columns:",
+                "DataFrame 'df' created at line 11 with columns:",
                 "  • Age",
                 "  • City",
                 "  • Name",
@@ -78,7 +78,7 @@ df["NonExistentColumn"]
                 end=(15, 22),
             ),
             hint=[
-                "DataFrame 'df' created at line 4:0 with columns:",
+                "DataFrame 'df' created at line 4 with columns:",
                 "  • Age",
                 "  • City",
                 "  • Name",
@@ -120,7 +120,7 @@ df["NonExistentColumn"]
                 end=(12, 22),
             ),
             hint=[
-                "DataFrame 'df' created at line 4:0 with columns:",
+                "DataFrame 'df' created at line 4 with columns:",
                 "  • Name",
             ],
             definition_region=CodeRegion.from_tuples(
@@ -138,7 +138,7 @@ df["NonExistentColumn"]
                 end=(13, 22),
             ),
             hint=[
-                "DataFrame 'df' created at line 4:0 with columns:",
+                "DataFrame 'df' created at line 4 with columns:",
                 "  • Name",
             ],
             definition_region=CodeRegion.from_tuples(
@@ -176,7 +176,7 @@ df["NameLower"] = df["Name"].str.lower()
                 end=(11, 14),
             ),
             hint=[
-                "DataFrame 'df' created at line 4:0 with columns:",
+                "DataFrame 'df' created at line 4 with columns:",
                 "  • Name",
             ],
             definition_region=CodeRegion.from_tuples(
@@ -220,7 +220,7 @@ df["EmpolyeeName"]
                 end=(16, 17),
             ),
             hint=[
-                "DataFrame 'df' created at line 13:0 with columns:",
+                "DataFrame 'df' created at line 13 with columns:",
                 "  • dept",
                 "  • employee_id",
                 "  • employee_name",

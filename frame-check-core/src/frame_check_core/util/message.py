@@ -3,7 +3,7 @@
 # TODO: Improve the message formatting in another PR
 from typing import TYPE_CHECKING
 
-from ..models.diagnostic import Severity, CodeSource
+from ..models.diagnostic import CodeSource, Severity
 
 if TYPE_CHECKING:
     from ..frame_checker import FrameChecker
@@ -40,25 +40,25 @@ def print_diagnostics(fc: "FrameChecker", file=None, color: bool = True) -> None
     for diag in fc.diagnostics:
         # Calculate max line number width for proper alignment
 
-        max_line_num = diag.loc[0]
+        max_line_num = diag.region.start.row
         if diag.data_src_region:
-            max_line_num = max(max_line_num, diag.data_source_location[0])
+            max_line_num = max(max_line_num, diag.data_src_region.start.row)
         line_width = len(str(max_line_num))
 
         _print_error_header(diag, fc.source, line_width, file=file, color=color)
         _print_code_line(
-            diag.region,
+            (diag.region.start.row, diag.region.start.col),
             lines,
-            diag.underline_length,
+            diag.region.col_span,
             CARET,
             line_width,
-            output=output,
+            file=file,
             color=color,
         )
-        _print_hints(diag.hint, line_width, output=output)
+        _print_hints(diag.hint, line_width, file=file)
 
-        if diag.data_source_location:
-            _print_data_source_note(diag, lines, line_width, output=output)
+        if diag.data_src_region:
+            _print_data_source_note(diag, lines, line_width, file=file)
 
 
 def _print_error_header(
@@ -69,7 +69,7 @@ def _print_error_header(
     color: bool = True,
 ) -> None:
     """Print the error header line with source and message."""
-    line_num, col_num = diag.location
+    line_num, col_num = diag.region.start.row, diag.region.start.col
     if color:
         diag_color = RED if diag.severity == Severity.ERROR else YELLOW
     else:

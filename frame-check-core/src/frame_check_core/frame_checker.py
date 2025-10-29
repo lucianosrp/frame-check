@@ -82,7 +82,7 @@ class FrameChecker(ast.NodeVisitor):
         """Generate diagnostics from collected column accesses."""
         for access in self.column_accesses.values():
             if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_region.start}"
+                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_region.start.row}"
                 data_line += " with columns:"
                 hints = [data_line]
 
