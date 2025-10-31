@@ -122,8 +122,6 @@ class FrameChecker(ast.NodeVisitor):
                             id=node.targets[0].id
                             if isinstance(node.targets[0], ast.Name)
                             else "",
-                            data_arg=None,
-                            keywords=[],
                             columns=created.columns,
                         )
                         self.frames.add(new_frame)

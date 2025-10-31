@@ -58,15 +58,11 @@ def test_frame_instance_new(columns, expected):
             end=(11, 2),
         ),
         id="df",
-        data_arg=None,
-        keywords=[],
         columns=columns,
     )
     assert frame.region.row_span == 1
     assert frame.region.col_span == 2
     assert frame.id == "df"
-    assert frame.data_arg is None
-    assert frame.keywords == []
     assert frame.columns == expected
 
 
@@ -77,8 +73,6 @@ def test_frame_instance_from_frame():
             end=(11, 2),
         ),
         id="df",
-        data_arg=None,
-        keywords=[],
         columns=["col_a", "col_b"],
     )
 
@@ -91,8 +85,6 @@ def test_frame_instance_from_frame():
     )
 
     assert new_frame.id == original_frame.id
-    assert new_frame.data_arg is original_frame.data_arg
-    assert new_frame.keywords == original_frame.keywords
     assert new_frame.columns == {"col_a", "col_b", "col_c", "col_d"}
     assert new_frame.region != original_frame.region
     assert new_frame.defined_region == original_frame.defined_region

@@ -52,16 +52,6 @@ class FrameInstance:
     Identifier for the frame
     """
 
-    data_arg: ast.List | ast.Dict | None = None
-    """
-    Data argument used in the frame
-    """
-
-    keywords: list[ast.keyword] = field(default_factory=list)
-    """
-    Keyword arguments for the frame
-    """
-
     columns: frozenset[str]
     """
     Set of column names in this frame
@@ -73,8 +63,6 @@ class FrameInstance:
         *,
         region: CodeRegion,
         id: str,
-        data_arg: ast.List | ast.Dict | None = None,
-        keywords: list[ast.keyword] = field(default_factory=list),
         columns: Iterable[str] | ast.expr,
     ) -> "FrameInstance":
         """
@@ -83,7 +71,6 @@ class FrameInstance:
         Args:
             lineno: Line number where the frame appears
             id: Identifier for the frame
-            data_arg: Data argument used in the frame
             keywords: Keyword arguments for the frame
             columns: Column names to include in the frame
 
@@ -93,8 +80,6 @@ class FrameInstance:
         return cls(
             region=region,
             id=id,
-            data_arg=data_arg,
-            keywords=keywords,
             columns=frozenset(get_column_values(columns)),
             defined_region=region,
         )
