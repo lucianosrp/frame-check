@@ -2,7 +2,7 @@
 > This project is currently under active development and is not considered polished. You are welcome to fork it, contribute to making it more stable, or raise issues.
 ---
 
-# frame-check
+![](frame-check-logo.png)
 
 A static checker for pandas DataFrames
 
