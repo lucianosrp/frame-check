@@ -2,7 +2,11 @@
 > This project is currently under active development and is not considered polished. You are welcome to fork it, contribute to making it more stable, or raise issues.
 ---
 
-![](frame-check-logo.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="static/frame-check-logo.png">
+  <source media="(prefers-color-scheme: light)" srcset="static/frame-check-logo-light.png">
+  <img alt="Fallback image description" src="default-image.png">
+</picture>
 
 A static checker for pandas DataFrames
 
