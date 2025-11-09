@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="116.394 55.667 271.7659 50.314" width="271.766px" height="50.314px" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <style bx:fonts="Arvo">@import url(https://fonts.googleapis.com/css2?family=Arvo%3Aital%2Cwght%400%2C400%3B0%2C700%3B1%2C400%3B1%2C700&amp;display=swap);</style>
+    <bx:export>
+      <bx:file format="png" path="frame-check-logo-light.png"/>
+      <bx:file format="png"/>
+      <bx:file format="png" href="#object-0" path="frame-check-logo.png" dpi="300"/>
+    </bx:export>
+  </defs>
+  <g transform="matrix(1, 0, 0, 1, -1.1368683772161603e-13, -2.842170943040401e-14)" id="object-0">
+    <path d="M 136.315 62.778 L 125.116 62.778 L 125.116 97.584 L 132.676 97.584 L 132.676 105.981 L 116.394 105.981 L 116.394 97.584 L 116.437 97.584 L 116.437 62.778 L 116.394 62.778 L 116.394 55.667 L 136.315 55.667 L 136.315 62.778 Z" style="text-wrap-mode: nowrap; stroke-width: 1; fill: rgb(222, 222, 222);"/>
+    <text style="fill: rgb(222, 222, 222); font-family: Arvo; font-size: 37px; white-space: pre;" x="136.315" y="93.976">frame-check</text>
+    <path d="M 388.159 98.87 L 376.96 98.87 L 376.96 64.064 L 384.52 64.064 L 384.52 55.667 L 368.238 55.667 L 368.238 64.064 L 368.281 64.064 L 368.281 98.87 L 368.238 98.87 L 368.238 105.981 L 388.159 105.981 L 388.159 98.87 Z" style="text-wrap-mode: nowrap; stroke-width: 1; transform-origin: 378.199px 80.824px; fill: rgb(222, 222, 222);" transform="matrix(-1, 0, 0, -1, -0.000079, -0.000003)"/>
+  </g>
+</svg>
