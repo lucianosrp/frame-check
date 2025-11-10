@@ -20,7 +20,7 @@ class CodePosition:
         return f"{self.row}:{self.col}"
 
 
-@dataclass(kw_only=True, order=True, frozen=True)
+@dataclass(kw_only=True, frozen=True)
 class CodeRegion:
     """
     Represents a rectangular region (end exclusive) in source code,

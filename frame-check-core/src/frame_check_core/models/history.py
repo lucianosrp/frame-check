@@ -1,8 +1,24 @@
+from __future__ import annotations
 import ast
+from abc import ABC
+import bisect
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import NamedTuple
+from functools import cached_property, total_ordering
 from .region import CodeRegion
+from enum import IntEnum
+
+
+class ColumnEventType(IntEnum):
+    ADDED, REMOVED = range(2)
+
+
+@dataclass(kw_only=True, frozen=True, slots=True)
+class ColumnEvent:
+    """Represents a change to a column in a data frame."""
+
+    type: ColumnEventType = ColumnEventType.ADDED
+    column_name: str
 
 
 def get_column_values(
@@ -29,22 +45,13 @@ def get_column_values(
 
 
 @dataclass(kw_only=True, frozen=True, slots=True)
-class FrameInstance:
+@total_ordering
+class FrameInstance(ABC):
     """
-    Represents an immutable instance of a data frame at a specific line number.
+    Represents an immutable event related to a data frame at a specific line number.
 
     This class stores information about a data frame, including its source location,
     identifier, data arguments, and columns.
-    """
-
-    region: CodeRegion
-    """
-    Code region where this frame instance appears
-    """
-
-    defined_region: CodeRegion
-    """
-    Code region where this frame instance is first defined
     """
 
     id: str
@@ -52,10 +59,53 @@ class FrameInstance:
     Identifier for the frame
     """
 
-    columns: frozenset[str]
+    region: CodeRegion
     """
-    Set of column names in this frame
+    Code region where this frame instance appears. By definition,
+    it is impossible to have two frame instances within the same
+    code region
     """
+
+    column_events: list[ColumnEvent] = field(default_factory=list)
+    """
+    List of column events (additions, removals) associated with this frame instance.
+    """
+
+    _parent: FrameInstance | None = None
+    """
+    Parent frame event, if any
+    """
+
+    @cached_property
+    def columns(self) -> set[str]:
+        """Get the set of columns in this frame instance."""
+        cols = set[str]()
+        if self._parent:
+            cols.update(self._parent.columns)
+        for change in self.column_events:
+            # We only care about added and removed columns here
+            match change.type:
+                case ColumnEventType.ADDED:
+                    cols.add(change.column_name)
+                case ColumnEventType.REMOVED:
+                    cols.discard(change.column_name)
+        return cols
+
+    @cached_property
+    def defined_region(self) -> CodeRegion:
+        if self._parent:
+            return self._parent.region
+        return self.region
+
+    def __lt__(self, other: object) -> bool:
+        if not isinstance(other, FrameInstance):
+            return NotImplemented
+        return self.id == other.id and self.region.end < other.region.start
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, FrameInstance):
+            return NotImplemented
+        return self.region == other.region and self.id == other.id
 
     @classmethod
     def new(
@@ -64,15 +114,14 @@ class FrameInstance:
         region: CodeRegion,
         id: str,
         columns: Iterable[str] | ast.expr,
-    ) -> "FrameInstance":
+    ) -> FrameInstance:
         """
-        Create a new FrameInstance with the given parameters.
+        Create a new FrameCreationEvent with the specified properties.
 
         Args:
-            lineno: Line number where the frame appears
+            region: Code region where this frame event appears
             id: Identifier for the frame
-            keywords: Keyword arguments for the frame
-            columns: Column names to include in the frame
+            columns: Column names to include in the event
 
         Returns:
             A new FrameInstance with the specified properties
@@ -80,16 +129,18 @@ class FrameInstance:
         return cls(
             region=region,
             id=id,
-            columns=frozenset(get_column_values(columns)),
-            defined_region=region,
+            column_events=[
+                ColumnEvent(column_name=col) for col in get_column_values(columns)
+            ],
         )
 
     def new_instance(
         self,
         *,
         region: CodeRegion,
-        new_columns: Iterable[str] | ast.expr,
-    ) -> "FrameInstance":
+        added_columns: Iterable[str] | None = None,
+        removed_columns: Iterable[str] | None = None,
+    ) -> FrameInstance:
         """
         Create a new FrameInstance based on the current instance with updated properties.
 
@@ -97,79 +148,105 @@ class FrameInstance:
         instance but with a new line number and additional columns.
 
         Args:
-            lineno: New line number for the frame instance
-            new_columns: Additional columns to merge with existing columns
+            region: Code region for the new frame instance
+            new_column_definitions: Additional column definitions to merge with existing ones
+            removed_columns: Columns to remove from the existing columns
 
         Returns:
             A new FrameInstance with updated properties
         """
+        column_events: list[ColumnEvent] = []
+        for added_column in added_columns or []:
+            column_events.append(
+                ColumnEvent(
+                    type=ColumnEventType.ADDED,
+                    column_name=added_column,
+                )
+            )
+        for removed_column in removed_columns or []:
+            column_events.append(
+                ColumnEvent(
+                    type=ColumnEventType.REMOVED,
+                    column_name=removed_column,
+                )
+            )
         return FrameInstance(
             region=region,
             id=self.id,
-            columns=self.columns.union(get_column_values(new_columns)),
-            defined_region=self.defined_region,
+            column_events=column_events,
+            _parent=self,
         )
 
 
-@dataclass(kw_only=True)
-class ColumnInstance:
-    _node: ast.Subscript
-    id: str
-    region: CodeRegion
-    frame: FrameInstance
-
-
-class LineIdKey(NamedTuple):
-    lineno: int
-    id: str
-
-
 @dataclass(kw_only=True, slots=True)
-class InstanceHistory[I: FrameInstance | ColumnInstance]:
-    instances: dict[LineIdKey, I] = field(default_factory=dict)
+class InstanceTimeline[I: FrameInstance]:
+    id: str
+    _instances: list[I] = field(default_factory=list)
 
-    def add(self, instance: I):
-        key = LineIdKey(instance.region.start.row, instance.id)
-        self.instances[key] = instance
-
-    def get(self, id: str | None) -> list[I]:
-        return [instance for instance in self.instances.values() if instance.id == id]
-
-    def get_at(self, lineno: int, id: str) -> I | None:
-        return self.instances.get(LineIdKey(lineno, id))
-
-    def get_before(self, lineno: int, id: str) -> I | None:
-        # Filter only keys with matching id first (dictionary lookup is O(1))
-        matching_keys = [k for k in self.instances.keys() if k.id == id]
-
-        # Then sort only those keys
-        matching_keys.sort(key=lambda k: k.lineno, reverse=True)
-        for key in matching_keys:
-            if key.lineno < lineno:
-                return self.instances[key]
+    @property
+    def latest_instance(self) -> I | None:
+        if self._instances:
+            return self._instances[-1]
         return None
 
+    def add(self, instance: I):
+        if instance.id != self.id:
+            raise ValueError("Instance ID does not match timeline ID")
+        # Fast path for appending at the end
+        if self.latest_instance < instance:
+            self._instances.append(instance)
+        bisect.insort(self._instances, instance)
+
+    def get_at_line(self, lineno: int) -> list[I]:
+        """Retrieve all instances that cover the given line number."""
+
+        left_inclusive = bisect.bisect_left(
+            self._instances,
+            FrameInstance(
+                region=CodeRegion.from_tuples(start=(lineno, 0), end=(lineno + 1, 0)),
+                id=self.id,
+            ),
+        )
+        right_inclusive = bisect.bisect_right(
+            self._instances,
+            FrameInstance(
+                region=CodeRegion.from_tuples(start=(lineno, 0), end=(lineno + 1, 0)),
+                id=self.id,
+            ),
+        )
+        return self._instances[left_inclusive:right_inclusive]
+
+    def get_before_line(self, lineno: int) -> I | None:
+        """Retrieve the latest instance before the given line number."""
+        index = bisect.bisect_left(
+            self._instances,
+            FrameInstance(
+                region=CodeRegion.from_tuples(start=(lineno, 0), end=(lineno + 1, 0)),
+                id=self.id,
+            ),
+        )
+        if index > 0:
+            return self._instances[index - 1]
+        return None
+
+
+class InstanceMuseum[I: FrameInstance]:
+    """Wrapper around multiple InstanceTimelines for easier access."""
+
+    _timelines: dict[str, InstanceTimeline[I]] = field(default_factory=dict)
+
+    def get(self, id: str) -> InstanceTimeline[I]:
+        """Get the timeline for the given instance ID, creating it if it doesn't exist."""
+        return self._timelines.setdefault(id, InstanceTimeline[I](id=id))
+
+    def items(self):
+        """Iterate over all timelines in the museum."""
+        yield from self._timelines.items()
+
+    @property
     def instance_ids(self) -> set[str]:
-        return {instance.id for instance in self.instances.values()}
-
-    def values(self) -> list[I]:
-        return list(self.instances.values())
-
-    def __len__(self) -> int:
-        return len(self.instances)
-
-    def __setitem__(self, key: LineIdKey, value: I):
-        self.instances[key] = value
-
-    def __getitem__(self, key: LineIdKey) -> I:
-        return self.instances[key]
-
-    def __contains__(self, item: LineIdKey) -> bool:
-        return item in self.instances
-
-    def contains_id(self, id: str) -> bool:
-        return id in self.instance_ids()
+        """Get all instance IDs in the museum."""
+        return set(self._timelines.keys())
 
 
-FrameHistory = InstanceHistory[FrameInstance]
-ColumnHistory = InstanceHistory[ColumnInstance]
+FrameMuseum = InstanceMuseum[FrameInstance]

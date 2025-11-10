@@ -13,13 +13,7 @@ from .ast.models import (
     set_result,
 )
 from .models.diagnostic import CodeSource, Diagnostic, Severity
-from .models.history import (
-    ColumnHistory,
-    ColumnInstance,
-    FrameHistory,
-    FrameInstance,
-    LineIdKey,
-)
+from .models.history import FrameInstance, FrameMuseum
 from .models.region import CodeRegion
 from .util.col_similarity import zero_deps_jaro_winkler
 
@@ -34,8 +28,7 @@ class FrameChecker(ast.NodeVisitor):
         then it will be {'pandas': 'pandas'}
         """
 
-        self.frames: FrameHistory = FrameHistory()
-        self.column_accesses: ColumnHistory = ColumnHistory()
+        self.frame_museum: FrameMuseum = FrameMuseum()
         self.definitions: dict[str, Result] = {}
         self.diagnostics: list[Diagnostic] = []
         self.source: CodeSource
@@ -73,37 +66,37 @@ class FrameChecker(ast.NodeVisitor):
         else:
             raise TypeError(f"Unsupported type: {type(code)}")
 
-        checker.visit(tree)
         # Generate diagnostics
-        checker._generate_diagnostics()
+        checker.visit(tree)
         return checker
 
-    def _generate_diagnostics(self):
-        """Generate diagnostics from collected column accesses."""
-        for access in self.column_accesses.values():
-            if access.id not in access.frame.columns:
-                data_line = f"DataFrame '{access.frame.id}' created at line {access.frame.defined_region.start.row}"
-                data_line += " with columns:"
-                hints = [data_line]
+    def _add_illegal_access_diagnostic(
+        self, frame: FrameInstance, illegal_column: str, access_region: CodeRegion
+    ):
+        data_line = (
+            f"DataFrame '{frame.id}' created at line {frame.defined_region.start.row}"
+        )
+        data_line += " with columns:"
+        hints = [data_line]
 
-                for col in sorted(access.frame.columns):
-                    hints.append(f"  • {col}")
-                message = f"Column '{access.id}' does not exist"
-                similar_col = zero_deps_jaro_winkler(access.id, access.frame.columns)
-                if similar_col:
-                    message += f", did you mean '{similar_col}'?"
-                else:
-                    message += "."
+        for col in sorted(frame.columns):
+            hints.append(f"  • {col}")
+        message = f"Column '{illegal_column}' does not exist"
+        similar_col = zero_deps_jaro_winkler(illegal_column, frame.columns)
+        if similar_col:
+            message += f", did you mean '{similar_col}'?"
+        else:
+            message += "."
 
-                diagnostic = Diagnostic(
-                    column_name=access.id,
-                    message=message,
-                    severity=Severity.ERROR,
-                    region=access.region,
-                    hint=hints,
-                    definition_region=access.frame.defined_region,
-                )
-                self.diagnostics.append(diagnostic)
+        diagnostic = Diagnostic(
+            column_name=illegal_column,
+            message=message,
+            severity=Severity.ERROR,
+            region=access_region,
+            hint=hints,
+            definition_region=frame.defined_region,
+        )
+        self.diagnostics.append(diagnostic)
 
     def _maybe_create_df(self, node: ast.Assign) -> None:
         match node.value:
@@ -117,14 +110,17 @@ class FrameChecker(ast.NodeVisitor):
                     if error is not None:
                         pass  # TODO
                     if created is not None:
+                        df_name = (
+                            node.targets[0].id
+                            if isinstance(node.targets[0], ast.Name)
+                            else ""
+                        )
                         new_frame = FrameInstance.new(
                             region=CodeRegion.from_ast_node(node=node.targets[0]),
-                            id=node.targets[0].id
-                            if isinstance(node.targets[0], ast.Name)
-                            else "",
+                            id=df_name,
                             columns=created.columns,
                         )
-                        self.frames.add(new_frame)
+                        self.frame_museum.get(df_name).add(new_frame)
 
     @override
     def visit_Assign(self, node: ast.Assign):
@@ -133,14 +129,12 @@ class FrameChecker(ast.NodeVisitor):
                 case ast.Subscript(value=ast.Name(id=df_name), slice=subscript_slice):
                     set_assigning(target)
                     df_name = df_name or ""
-                    if last_frame := self.frames.get_before(node.lineno, df_name):
-                        # CAM-1: direct column assignment to existing DataFrame
-                        new_frame = last_frame.new_instance(
-                            region=CodeRegion.from_ast_node(node=node),
-                            new_columns=subscript_slice,
+                    timeline = self.frame_museum.get(df_name)
+                    if (latest_frame := timeline.latest_instance) is not None:
+                        new_frame = latest_frame.new_instance(
+                            region=CodeRegion.from_ast_node(node=target),
+                            added_columns=subscript_slice._fields,
                         )
-                        self.frames.add(new_frame)
-
                 case ast.Name(id=id):
                     # any other value assignemnt like foo = "something"
                     self.definitions[id] = get_result(node.value, self.definitions)
@@ -173,7 +167,7 @@ class FrameChecker(ast.NodeVisitor):
             return
 
         frame_id = node.value.id
-        if frame_id not in self.frames.instance_ids():
+        if frame_id not in self.frame_museum.instance_ids:
             return
 
         if not isinstance(const := node.slice, ast.Constant) or not isinstance(
@@ -181,15 +175,16 @@ class FrameChecker(ast.NodeVisitor):
         ):
             return
 
-        # referencing a column by string constant
-        frame = self.frames.get_before(node.lineno, frame_id)
-        if frame is not None:
-            # record this column access with just the column name
-            self.column_accesses[LineIdKey(node.lineno, const.value)] = ColumnInstance(
-                _node=node,
-                id=const.value,
-                region=CodeRegion.from_ast_node(node=node.slice),
-                frame=frame,
+        latest_frame = self.frame_museum.get(frame_id).latest_instance
+        if latest_frame is None:
+            return
+
+        # record this illegal column access with just the column name (string constant)
+        if const.value not in latest_frame.columns:
+            self._add_illegal_access_diagnostic(
+                frame=latest_frame,
+                illegal_column=const.value,
+                access_region=CodeRegion.from_ast_node(node=node),
             )
 
     @override
@@ -200,7 +195,8 @@ class FrameChecker(ast.NodeVisitor):
             df = None
             match node.func.value:
                 case ast.Name(frame_id):
-                    if frame := self.frames.get_before(node.lineno, frame_id):
+                    frame = self.frame_museum.get(frame_id).latest_instance
+                    if frame is not None:
                         df = DF(frame.columns)
                 case ast.Call(val):
                     result = get_result(val, self.definitions)
@@ -224,6 +220,6 @@ class FrameChecker(ast.NodeVisitor):
             if df.columns != updated.columns and frame is not None:
                 new_frame = frame.new_instance(
                     region=CodeRegion.from_ast_node(node=node),
-                    new_columns=updated.columns,
+                    added_columns=updated.columns,
                 )
-                self.frames.add(new_frame)
+                self.frame_museum.get(new_frame.id).add(new_frame)
