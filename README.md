@@ -3,9 +3,9 @@
 ---
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/frame-check-logo.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/frame-check-logo-light.png">
-  <img alt="Fallback image description" src="docs/assets/frame-check-logo.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/frame-check-logo.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/assets/frame-check-logo-light.svg">
+  <img alt="Fallback image description" src="docs/assets/frame-check-logo.svg">
 </picture>
 
 A static checker for pandas DataFrames
