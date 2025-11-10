@@ -2,6 +2,8 @@
 site_name: Frame Check
 theme:
   name: material
+  logo: assets/frame-check-logo.svg
+  favicon: assets/favicon.svg
   features:
     - content.code.copy
     - content.code.annotate
@@ -16,14 +18,14 @@ theme:
     # Palette toggle for automatic mode
 
     - media: "(prefers-color-scheme)"
-      primary: deep orange
+      primary: black
       toggle:
         icon: material/brightness-auto
         name: Switch to light mode
 
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
-      primary: deep orange
+      primary: black
       scheme: default
       toggle:
         icon: material/brightness-7
@@ -31,7 +33,7 @@ theme:
 
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
-      primary: deep orange
+      primary: black
       scheme: slate
       toggle:
         icon: material/brightness-4
