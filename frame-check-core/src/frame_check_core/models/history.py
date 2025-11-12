@@ -44,7 +44,7 @@ def get_column_values(
             yield from []
 
 
-@dataclass(kw_only=True, frozen=True, slots=True)
+@dataclass(kw_only=True, frozen=True)
 @total_ordering
 class FrameInstance(ABC):
     """
@@ -178,7 +178,7 @@ class FrameInstance(ABC):
         )
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class InstanceTimeline[I: FrameInstance]:
     id: str
     _instances: list[I] = field(default_factory=list)
@@ -193,8 +193,9 @@ class InstanceTimeline[I: FrameInstance]:
         if instance.id != self.id:
             raise ValueError("Instance ID does not match timeline ID")
         # Fast path for appending at the end
-        if self.latest_instance < instance:
+        if self.latest_instance is None or self.latest_instance < instance:
             self._instances.append(instance)
+            return
         bisect.insort(self._instances, instance)
 
     def get_at_line(self, lineno: int) -> list[I]:
@@ -230,6 +231,7 @@ class InstanceTimeline[I: FrameInstance]:
         return None
 
 
+@dataclass(kw_only=True, slots=True)
 class InstanceMuseum[I: FrameInstance]:
     """Wrapper around multiple InstanceTimelines for easier access."""
 

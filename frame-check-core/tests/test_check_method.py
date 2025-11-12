@@ -2,6 +2,7 @@ import ast
 from unittest.mock import MagicMock, patch
 
 from frame_check_core import FrameChecker
+from frame_check_core.models.region import CodeRegion
 
 
 def test_check_with_string_input():
@@ -12,17 +13,24 @@ data = {'A': [1, 2, 3], 'B': [4, 5, 6]}
 df = pd.DataFrame(data)
 value = df['C']
 """
-    checker = FrameChecker.check(code)
-    assert len(checker.column_accesses) == 1
-    assert checker.column_accesses.contains_id("C")
-    assert checker.column_accesses.get("C")[-1].id == "C"
+    fc = FrameChecker.check(code)
+    assert len(fc.diagnostics) == 1
+    diagnostic = fc.diagnostics[0]
+    assert diagnostic.message == "Column 'C' does not exist."
+    assert diagnostic.region == CodeRegion.from_tuples(
+        start=(5, 8),
+        end=(6, 15),
+    )
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"A", "B"})
 
     # Ensure the correct branch is taken
     with (
         patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
         patch("frame_check_core.frame_checker.open") as mock_open,
     ):
-        checker = FrameChecker.check(code)
+        FrameChecker.check(code)
         # Ensure the AST has parsed the code string
         mock_ast_parse.assert_called_once_with(code)
         mock_open.assert_not_called()
@@ -39,10 +47,11 @@ value = df['A']
     ast_module = ast.parse(code)
     assert isinstance(ast_module, ast.Module)
 
-    checker = FrameChecker.check(ast_module)
-    assert len(checker.frames.instances) == 1
-    assert len(checker.column_accesses) == 1
-    assert checker.column_accesses.contains_id("A")
+    fc = FrameChecker.check(ast_module)
+    assert len(fc.diagnostics) == 0
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"A", "B"})
 
     # Ensure the correct branch is taken
     with (
@@ -66,9 +75,17 @@ result = df['Z']
     test_file = tmp_path / "test_code.py"
     test_file.write_text(code)
 
-    checker = FrameChecker.check(test_file)
-    assert len(checker.column_accesses) == 1
-    assert checker.column_accesses.contains_id("Z")
+    fc = FrameChecker.check(test_file)
+    assert len(fc.diagnostics) == 1
+    diagnostic = fc.diagnostics[0]
+    assert diagnostic.message == "Column 'Z' does not exist."
+    assert diagnostic.region == CodeRegion.from_tuples(
+        start=(5, 9),
+        end=(6, 16),
+    )
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"X", "Y"})
 
     mock_fd = MagicMock()
     mock_fd.__enter__().read.return_value = code
@@ -77,7 +94,7 @@ result = df['Z']
         patch("frame_check_core.frame_checker.ast.parse") as mock_ast_parse,
         patch("frame_check_core.frame_checker.open", return_value=mock_fd) as mock_open,
     ):
-        checker = FrameChecker.check(test_file)
+        FrameChecker.check(test_file)
         # Ensure both the AST parse method and file open method are called
         mock_ast_parse.assert_called_once_with(code)
         mock_open.assert_called_once_with(str(test_file), "r")
@@ -92,13 +109,11 @@ data = {'name': ['Alice', 'Bob'], 'age': [25, 30]}
 df = pd.DataFrame(data)
 names = df['name']
 """
-    checker = FrameChecker.check(code)
-    assert len(checker.column_accesses) == 1
-    assert checker.column_accesses.contains_id("name")
-    access = checker.column_accesses.get("name")[-1]
-    assert access.id == "name"
-    assert access.frame.id == "df"
-    assert "name" in access.frame.columns
+    fc = FrameChecker.check(code)
+    assert len(fc.diagnostics) == 0
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"name", "age"})
 
 
 def test_check_multiple_dataframes():
@@ -113,11 +128,17 @@ val1 = df1['A']
 val2 = df2['C']
 val3 = df1['X']  # Invalid column
 """
-    checker = FrameChecker.check(code)
-    assert len(checker.column_accesses) == 3
-    assert checker.column_accesses.contains_id("A")
-    assert checker.column_accesses.contains_id("C")
-    assert checker.column_accesses.contains_id("X")
+    fc = FrameChecker.check(code)
+    assert len(fc.diagnostics) == 1
+    diagnostic = fc.diagnostics[0]
+    assert diagnostic.message == "Column 'X' does not exist."
+    assert diagnostic.region == CodeRegion.from_tuples(
+        start=(9, 7),
+        end=(10, 15),
+    )
+    df1_snapshot = fc.frame_museum.get("df1").latest_instance
+    assert df1_snapshot is not None
+    assert df1_snapshot.columns == frozenset({"A", "B"})
 
 
 def test_check_pandas_alias():
@@ -128,18 +149,18 @@ data = {'col1': [1, 2, 3], 'col2': [4, 5, 6]}
 df = pd_alias.DataFrame(data)
 result = df['col1']
 """
-    checker = FrameChecker.check(code)
-    assert len(checker.frames.instances) == 1
-    assert len(checker.column_accesses) == 1
-    assert checker.column_accesses.contains_id("col1")
+    fc = FrameChecker.check(code)
+    assert len(fc.diagnostics) == 0
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"col1", "col2"})
 
 
 def test_check_empty_code():
     """Test checking empty code."""
-    checker = FrameChecker.check("")
-    assert len(checker.frames.instances) == 0
-    assert len(checker.column_accesses) == 0
-    assert len(checker.import_aliases) == 0
+    fc = FrameChecker.check("")
+    assert len(fc.diagnostics) == 0
+    assert len(fc.frame_museum.instance_ids) == 0
 
 
 def test_check_no_pandas_code():
@@ -149,7 +170,6 @@ x = 5
 y = x + 10
 print(y)
 """
-    checker = FrameChecker.check(code)
-    assert len(checker.frames.instances) == 0
-    assert len(checker.column_accesses) == 0
-    assert len(checker.import_aliases) == 0
+    fc = FrameChecker.check(code)
+    assert len(fc.diagnostics) == 0
+    assert len(fc.frame_museum.instance_ids) == 0

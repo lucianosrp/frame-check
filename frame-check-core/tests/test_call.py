@@ -11,8 +11,9 @@ df.insert(0, "A", [1, 2, 3])
 df["A"]
 """
     fc = FrameChecker.check(code)
-    df = fc.frames.get("df")[-1]
-    assert df.columns == frozenset({"A"})
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"A"})
     assert len(fc.diagnostics) == 0
 
 

@@ -13,7 +13,7 @@ from .ast.models import (
     set_result,
 )
 from .models.diagnostic import CodeSource, Diagnostic, Severity
-from .models.history import FrameInstance, FrameMuseum
+from .models.history import FrameInstance, FrameMuseum, get_column_values
 from .models.region import CodeRegion
 from .util.col_similarity import zero_deps_jaro_winkler
 
@@ -133,8 +133,9 @@ class FrameChecker(ast.NodeVisitor):
                     if (latest_frame := timeline.latest_instance) is not None:
                         new_frame = latest_frame.new_instance(
                             region=CodeRegion.from_ast_node(node=target),
-                            added_columns=subscript_slice._fields,
+                            added_columns=get_column_values(subscript_slice),
                         )
+                        timeline.add(new_frame)
                 case ast.Name(id=id):
                     # any other value assignemnt like foo = "something"
                     self.definitions[id] = get_result(node.value, self.definitions)

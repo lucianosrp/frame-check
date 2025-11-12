@@ -10,9 +10,9 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 df["c"] = [7, 8, 9]
 """
     fc = FrameChecker.check(code)
-    dfs = fc.frames.get("df")
-    df = dfs[-1]
-    assert df.columns == frozenset({"a", "b", "c"})
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"a", "b", "c"})
 
 
 @pytest.mark.support(code="#CAM-10")
@@ -23,6 +23,6 @@ df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]]
 """
     fc = FrameChecker.check(code)
-    dfs = fc.frames.get("df")
-    df = dfs[-1]
-    assert df.columns == frozenset({"a", "b", "c", "d"})
+    df_snapshot = fc.frame_museum.get("df").latest_instance
+    assert df_snapshot is not None
+    assert df_snapshot.columns == frozenset({"a", "b", "c", "d"})
