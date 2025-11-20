@@ -1,8 +1,5 @@
 from typing import Literal, overload
 
-from frame_check_core.models.diagnostic import Diagnostic, Severity
-from frame_check_core.models.region import CodePosition, CodeRegion
-
 Strict = Literal["strict"]
 Relaxed = Literal["relaxed"]
 
@@ -33,9 +30,9 @@ class FrameTracker[M: Strict | Relaxed]:
     def try_get(
         self: "FrameTracker[Strict]",
         column: str,
-    ) -> Diagnostic | None: ...
+    ) -> str | None: ...
 
-    def try_get(self, column: str) -> Diagnostic | None:
+    def try_get(self, column: str) -> str | None:
         """
         Access a column (read operation).
 
@@ -44,7 +41,7 @@ class FrameTracker[M: Strict | Relaxed]:
 
         Returns:
             None on success (or in relaxed mode)
-            Diagnostic if column doesn't exist in strict mode
+            Name of the column if it doesn't exist in strict mode
         """
         columns = self.columns
 
@@ -52,15 +49,7 @@ class FrameTracker[M: Strict | Relaxed]:
             return None
 
         if self._is_strict:
-            return Diagnostic(
-                column_name=column,
-                message=f"Column '{column}' does not exist",
-                severity=Severity.ERROR,
-                region=CodeRegion(
-                    start=CodePosition(row=0, col=0),
-                    end=CodePosition(row=0, col=0),
-                ),
-            )
+            return column
 
         # Relaxed mode: auto-create the column
         columns[column] = set()
@@ -79,22 +68,38 @@ class FrameTracker[M: Strict | Relaxed]:
         self: "FrameTracker[Strict]",
         column: str,
         *,
-        depends_on: str | list[str] | None = None,
-    ) -> Diagnostic | None: ...
+        depends_on: None = None,
+    ) -> None: ...
+
+    @overload
+    def try_add(
+        self: "FrameTracker[Strict]",
+        column: str,
+        *,
+        depends_on: str | list[str],
+    ) -> list[str] | None: ...
 
     def try_add(
         self, column: str, *, depends_on: str | list[str] | None = None
-    ) -> Diagnostic | None:
+    ) -> list[str] | None:
         """
         Add a column to the tracker (write operation), optionally with dependencies.
 
+        In 'strict' mode:
+            - If any dependency does not exist, returns a Diagnostic describing the missing dependency.
+            - Otherwise, adds the column and its dependencies.
+
+        In 'relaxed' mode:
+            - Any missing dependencies are automatically created as independent columns.
+            - Always returns None.
+
         Args:
-            column: The column name to add/write
-            depends_on: Optional dependency column name(s) - can be a single string or list
+            column: The column name to add or write.
+            depends_on: Optional dependency column name(s). Can be a single string, a list of strings, or None.
 
         Returns:
-            None on success (or in relaxed mode)
-            Diagnostic if any dependency doesn't exist in strict mode
+            None on success (or always in relaxed mode).
+            Name of the columns that are required to exist in strict mode
         """
         columns = self.columns  # Local reference for faster lookups
 
@@ -110,23 +115,7 @@ class FrameTracker[M: Strict | Relaxed]:
         # Case 2: Adding a column with dependencies (e.g., df['F'] = df['A'] + df['B'])
         # In strict mode, collect all missing dependencies first
         if self._is_strict:
-            missing_deps = [dep for dep in dependencies if dep not in columns]
-            if missing_deps:
-                if len(missing_deps) == 1:
-                    message = f"Column '{missing_deps[0]}' does not exist"
-                else:
-                    cols = "', '".join(missing_deps)
-                    message = f"Columns '{cols}' do not exist"
-
-                return Diagnostic(  # TODO: better integrate this once we accept ast objects instead of strings
-                    column_name=missing_deps[0],
-                    message=message,
-                    severity=Severity.ERROR,
-                    region=CodeRegion(
-                        start=CodePosition(row=0, col=0),
-                        end=CodePosition(row=0, col=0),
-                    ),
-                )
+            return [dep for dep in dependencies if dep not in columns]
 
         # Relaxed mode: auto-create any missing dependencies
         for dep in dependencies:
@@ -208,7 +197,7 @@ if __name__ == "__main__":
     # df1['B'] = df1['C'] - Invalid: C doesn't exist (read fails)
     result = df1.try_get("C")
     if result:
-        print(f"Error reading C: {result.message}")
+        print(f"Error reading C: {result}")
 
     # df1['F'] = df1['A'] + df1['B'] - Valid: both A and B exist
     df1.try_add("F", depends_on=["A", "B"])
@@ -216,7 +205,7 @@ if __name__ == "__main__":
     # df1['G'] = df1['X'] + df1['Y'] - Invalid: both don't exist
     result = df1.try_add("G", depends_on=["X", "Y"])
     if result:
-        print(f"Error adding G with dependencies: {result.message}")
+        print(f"Error adding G with dependencies: {result}")
 
     # Now add X and Y first, then G will succeed
     # df1['X'] = 1 - Valid write, no deps
