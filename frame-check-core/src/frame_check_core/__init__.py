@@ -3,12 +3,11 @@ frame-check: A static column checker for dataframes!
 """
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
+from .checker import Checker, format_diagnostic
 from .config import Config, collect_python_files
-from .frame_checker import FrameChecker
-from .util.message import print_diagnostics
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -109,10 +108,11 @@ def main(argv: list[str] | None = None, override_config: Config | None = None) -
     # Process each file
     for file_path in python_files:
         try:
-            fc = FrameChecker.check(file_path)
-            if fc.diagnostics:
+            checker = Checker.check(file_path)
+            if checker.diagnostics:
                 has_errors = True
-                print_diagnostics(fc)
+                for diag in checker.diagnostics:
+                    print(format_diagnostic(diag, file_path))
 
         except SyntaxError as e:
             print(f"Syntax error in {file_path}:\n{e}", file=sys.stderr)

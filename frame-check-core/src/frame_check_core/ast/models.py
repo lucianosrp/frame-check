@@ -1,7 +1,7 @@
 import ast
 from typing import Callable, Iterable, Union
 
-from ..models.diagnostic import IllegalAccess
+from ..diagnostic import IllegalAccess
 
 
 class _Unknown:

@@ -1,6 +1,4 @@
-import pytest
-from frame_check_core import FrameChecker
-from frame_check_core.models.history import LineIdKey
+from frame_check_core.checker import Checker
 
 
 def test_simple_frame_history():
@@ -10,25 +8,9 @@ import pandas as pd
 df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
 """
 
-    fc = FrameChecker.check(code)
+    fc = Checker.check(code)
 
-    assert fc.frames.instance_ids() == {"df"}
-    assert list(fc.frames.instances.keys()) == [LineIdKey(4, "df")]
-
-
-@pytest.mark.xfail(reason="Not implemented yet", strict=True)
-def test_reassign_frame_history():
-    code = """
-import pandas as pd
-
-df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-df = df[["a"]]
-"""
-
-    fc = FrameChecker.check(code)
-
-    assert fc.frames.instance_ids() == {"df"}
-    assert list(fc.frames.instances.keys()) == [
-        LineIdKey(4, "df"),
-        LineIdKey(5, "df"),
-    ]
+    assert set(fc.dfs.keys()) == {"df"}
+    tracker = fc.dfs.get("df")
+    assert tracker is not None
+    assert set(tracker.columns.keys()) == {"a", "b"}
