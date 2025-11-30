@@ -87,6 +87,42 @@ def is_binop(node: ast.expr) -> TypeIs[ast.BinOp]:
     return type(node) is ast.BinOp
 
 
+def is_call(node: ast.expr) -> TypeIs[ast.Call]:
+    """
+    Check if an AST expression is a Call node.
+
+    Args:
+        node: The AST expression to check.
+
+    Returns:
+        True if the node is an `ast.Call`, narrowing the type for static analysis.
+
+    Example:
+        >>> node = ast.parse("df.sum()", mode="eval").body
+        >>> is_call(node)
+        True
+    """
+    return type(node) is ast.Call
+
+
+def is_attribute(node: ast.expr) -> TypeIs[ast.Attribute]:
+    """
+    Check if an AST expression is an Attribute node.
+
+    Args:
+        node: The AST expression to check.
+
+    Returns:
+        True if the node is an `ast.Attribute`, narrowing the type for static analysis.
+
+    Example:
+        >>> node = ast.parse("df.columns", mode="eval").body
+        >>> is_attribute(node)
+        True
+    """
+    return type(node) is ast.Attribute
+
+
 @dataclass(slots=True)
 class ColumnRef:
     """

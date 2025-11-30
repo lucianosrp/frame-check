@@ -37,7 +37,7 @@ from frame_check_core import diagnostic
 # Ensure pandas and dataframe handlers are registered
 from frame_check_core.ast import pandas as _pandas  # noqa: F401
 from frame_check_core.ast.models import DF, PD, Result, get_result
-from frame_check_core.extractors import extract_column_ref, extract_value_refs
+from frame_check_core.extractors import extract, extract_single_column_ref
 from frame_check_core.tracker import Relaxed, Strict, Tracker
 
 
@@ -238,7 +238,7 @@ class Checker(ast.NodeVisitor):
 
         result_name = target.id
 
-        # Match: df = df.method(...) or df2 = df.method(...)
+        # Match: df = df.register(...) or df2 = df.register(...)
         match node.value:
             case ast.Call(
                 func=ast.Attribute(value=ast.Name(id=source_df_name), attr=method_name),
@@ -313,7 +313,7 @@ class Checker(ast.NodeVisitor):
         if len(node.targets) != 1:
             return self.generic_visit(node)
 
-        target_ref = extract_column_ref(node.targets[0])
+        target_ref = extract_single_column_ref(node.targets[0])
         if target_ref is None:
             return self.generic_visit(node)
 
@@ -323,7 +323,7 @@ class Checker(ast.NodeVisitor):
 
         tracker = self.dfs[target_ref.df_name]
 
-        read_refs = extract_value_refs(node.value)
+        read_refs = extract(node.value)
         if read_refs is None:
             # Unknown RHS pattern - just add the column(s) without dependencies
             for col_name in target_ref.col_names:
@@ -383,7 +383,7 @@ class Checker(ast.NodeVisitor):
         if id(node) in self._skip_subscripts:
             return self.generic_visit(node)
 
-        ref = extract_column_ref(node)
+        ref = extract_single_column_ref(node)
         if ref is None:
             return self.generic_visit(node)
 

@@ -7,33 +7,42 @@ pattern type (simple subscripts, binary operations, method calls, etc.)
 and returns structured `ColumnRef` objects.
 
 Usage:
-    The main entry point is `extract_value_refs`, which tries all available
-    extractors in sequence and returns the first successful match:
+    The main entry point is `Extractor.extract()`, which tries all registered
+    extractors in priority order and returns the first successful match:
 
-    >>> from frame_check_core.dev.extractors import extract_value_refs
+    >>> from frame_check_core.extractors import Extractor
     >>> import ast
     >>> expr = ast.parse("df['A'] + df['B']", mode="eval").body
-    >>> refs = extract_value_refs(expr)
+    >>> refs = Extractor.extract(expr)
     >>> [ref.col_names[0] for ref in refs]
-    ['B', 'A']
+    ['A', 'B']
 
     For specific patterns, individual extractors can be used directly:
 
-    >>> from frame_check_core.dev.extractors import extract_column_ref
+    >>> from frame_check_core.extractors import extract_column_ref
     >>> expr = ast.parse("df['amount']", mode="eval").body
-    >>> ref = extract_column_ref(expr)
-    >>> ref.col_names
+    >>> refs = extract_column_ref(expr)
+    >>> refs[0].col_names
     ['amount']
 
-Available extractors:
-    - `extract_column_ref`: Single `df['col']` or multi-column `df[['a', 'b']]` patterns
-    - `extract_column_refs_from_binop`: Binary operations like `df['A'] + df['B']`
-
 Adding new extractors:
-    1. Create a new module in this package (e.g., `method.py`)
-    2. Implement an extractor function returning `list[ColumnRef] | None`
-    3. Import and add it to `extract_value_refs` in this file
-    4. Export it in `__all__`
+    Use the `@Extractor.register()` decorator:
+
+    >>> from frame_check_core.extractors import Extractor
+    >>> from frame_check_core.refs import ColumnRef
+    >>>
+    >>> @Extractor.register(priority=30, name="my_pattern")
+    ... def extract_my_pattern(node: ast.expr) -> list[ColumnRef] | None:
+    ...     # Extract column references from your pattern
+    ...     ...
+
+Priority:
+    Lower priority numbers are tried first. Suggested ranges:
+    - 0-19: Fast, common patterns (e.g., simple column access)
+    - 20-39: Moderately common patterns (e.g., binary operations)
+    - 40-59: Less common patterns (e.g., method calls)
+    - 60-79: Rare patterns
+    - 80-99: Fallback/catch-all patterns
 """
 
 import ast
@@ -41,28 +50,30 @@ import ast
 from frame_check_core.refs import ColumnRef
 
 from .binop import extract_column_refs_from_binop
-from .column import extract_column_ref
+
+# Import extractors to trigger their registration
+from .column import extract_column_ref, extract_single_column_ref
+from .registry import Extractor
 
 __all__ = [
+    # Registry
+    "Extractor",
+    # Types
     "ColumnRef",
+    # Individual extractors (for direct use)
     "extract_column_ref",
+    "extract_single_column_ref",
     "extract_column_refs_from_binop",
-    "extract_value_refs",
+    "extract",
 ]
 
 
-def extract_value_refs(node: ast.expr) -> list[ColumnRef] | None:
+def extract(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract column references from any recognized RHS expression pattern.
 
-    This is the main entry point for column reference extraction. It tries
-    each available extractor in order of likelihood and returns the first
-    successful match.
-
-    The extraction order is optimized for common patterns:
-    1. Simple column reference (`df['A']`) - most common
-    2. Binary operations (`df['A'] + df['B']`) - common in assignments
-    3. (Future) Method calls (`df['A'].fillna(df['B'])`)
+    This function is sugar-coating for `Extractor.extract()`
+    which tries all registered extractors in priority order.
 
     Args:
         node: The AST expression to analyze (typically the RHS of an assignment).
@@ -77,7 +88,7 @@ def extract_value_refs(node: ast.expr) -> list[ColumnRef] | None:
         >>> import ast
         >>> # Simple column reference
         >>> expr = ast.parse("df['A']", mode="eval").body
-        >>> refs = extract_value_refs(expr)
+        >>> refs = extract(expr)
         >>> len(refs)
         1
         >>> refs[0].col_names
@@ -85,26 +96,13 @@ def extract_value_refs(node: ast.expr) -> list[ColumnRef] | None:
 
         >>> # Binary operation
         >>> expr = ast.parse("df['A'] * df['B']", mode="eval").body
-        >>> refs = extract_value_refs(expr)
+        >>> refs = extract(expr)
         >>> sorted(ref.col_names[0] for ref in refs)
         ['A', 'B']
 
         >>> # Unsupported pattern
         >>> expr = ast.parse("df['A'] + 1", mode="eval").body
-        >>> extract_value_refs(expr) is None
+        >>> extract(expr) is None
         True
     """
-    # Fast path: single column reference (most common case)
-    # Example: df['A'] = df['B']
-    if ref := extract_column_ref(node):
-        return [ref]
-
-    # BinOp chains: df['A'] + df['B'], df['A'] * df['B'] + df['C'], etc.
-    if refs := extract_column_refs_from_binop(node):
-        return refs
-
-    # Future: Method calls like df['A'].fillna(df['B'])
-    # if refs := extract_column_refs_from_method(node):
-    #     return refs
-
-    return None
+    return Extractor.extract(node)

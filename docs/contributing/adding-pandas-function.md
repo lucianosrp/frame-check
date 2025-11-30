@@ -4,7 +4,7 @@ This guide shows how to add support for a new pandas function like `pd.read_exce
 
 ## Overview
 
-Pandas functions are registered in the `PD` class registry using the `@PD.method()` decorator. Each handler receives parsed arguments and returns the columns that would exist on the resulting DataFrame.
+Pandas functions are registered in the `PD` class registry using the `@PD.register()` decorator. Each handler receives parsed arguments and returns the columns that would exist on the resulting DataFrame.
 
 **Location**: `frame-check-core/src/frame_check_core/ast/pandas.py`
 
@@ -13,7 +13,7 @@ Pandas functions are registered in the `PD` class registry using the `@PD.method
 ```python
 from .models import PD, PDFuncResult, Result, idx_or_key
 
-@PD.method("function_name")
+@PD.register("function_name")
 def pd_function_name(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     # Extract relevant arguments
     # Determine columns from arguments
@@ -33,7 +33,7 @@ PDFuncResult = tuple[set[str] | None, IllegalAccess | None]
 ## Example: Existing `pd.DataFrame()`
 
 ```python
-@PD.method("DataFrame")
+@PD.register("DataFrame")
 def pd_dataframe(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     data = idx_or_key(args, keywords, idx=0, key="data")
     match data:
@@ -53,7 +53,7 @@ def pd_dataframe(args: list[Result], keywords: dict[str, Result]) -> PDFuncResul
 ## Example: Existing `pd.read_csv()`
 
 ```python
-@PD.method("read_csv")
+@PD.register("read_csv")
 def pd_read_csv(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     usecols = idx_or_key(args, keywords, key="usecols")
     match usecols:
@@ -88,7 +88,7 @@ pd.read_excel(
 ### Step 2: Add the handler
 
 ```python
-@PD.method("read_excel")
+@PD.register("read_excel")
 def pd_read_excel(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     # Check if explicit column names are provided
     names = idx_or_key(args, keywords, key="names")
@@ -163,7 +163,7 @@ uv run pytest tests/test_read_excel.py -v
 ### Adding `pd.read_json()`
 
 ```python
-@PD.method("read_json")
+@PD.register("read_json")
 def pd_read_json(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     # read_json doesn't have usecols, columns come from JSON structure
     # We can't determine them statically in most cases
@@ -173,7 +173,7 @@ def pd_read_json(args: list[Result], keywords: dict[str, Result]) -> PDFuncResul
 ### Adding `pd.concat()`
 
 ```python
-@PD.method("concat")
+@PD.register("concat")
 def pd_concat(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     objs = idx_or_key(args, keywords, idx=0, key="objs")
     
@@ -185,7 +185,7 @@ def pd_concat(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
 ### Adding `pd.read_parquet()` with columns parameter
 
 ```python
-@PD.method("read_parquet")
+@PD.register("read_parquet")
 def pd_read_parquet(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     columns = idx_or_key(args, keywords, key="columns")
     match columns:

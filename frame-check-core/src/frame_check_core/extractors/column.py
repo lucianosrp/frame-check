@@ -23,10 +23,13 @@ import ast
 
 from frame_check_core.refs import ColumnRef, is_constant, is_name, is_subscript
 
+from .registry import Extractor
+
 __all__ = ["extract_column_ref"]
 
 
-def extract_column_ref(node: ast.expr) -> ColumnRef | None:
+@Extractor.register(priority=10, name="column_ref")
+def extract_column_ref(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract a column reference from a subscript expression.
 
@@ -38,21 +41,21 @@ def extract_column_ref(node: ast.expr) -> ColumnRef | None:
         node: The AST expression to analyze.
 
     Returns:
-        A `ColumnRef` containing the DataFrame name, column name(s), and AST node
-        if the pattern matches; `None` otherwise.
+        A list containing a single `ColumnRef` with the DataFrame name,
+        column name(s), and AST node if the pattern matches; `None` otherwise.
 
     Example:
         >>> import ast
         >>> expr = ast.parse("df['amount']", mode="eval").body
-        >>> ref = extract_column_ref(expr)
-        >>> ref.df_name
+        >>> refs = extract_column_ref(expr)
+        >>> refs[0].df_name
         'df'
-        >>> ref.col_names
+        >>> refs[0].col_names
         ['amount']
 
         >>> expr = ast.parse("df[['x', 'y', 'z']]", mode="eval").body
-        >>> ref = extract_column_ref(expr)
-        >>> ref.col_names
+        >>> refs = extract_column_ref(expr)
+        >>> refs[0].col_names
         ['x', 'y', 'z']
     """
     if not is_subscript(node):
@@ -65,7 +68,7 @@ def extract_column_ref(node: ast.expr) -> ColumnRef | None:
 
     # Single column: df['col']
     if is_constant(slice_node) and isinstance(slice_node.value, str):
-        return ColumnRef(node, node.value.id, [slice_node.value])
+        return [ColumnRef(node, node.value.id, [slice_node.value])]
 
     # Multi-column: df[['a', 'b']]
     if isinstance(slice_node, ast.List):
@@ -80,6 +83,33 @@ def extract_column_ref(node: ast.expr) -> ColumnRef | None:
         if not col_names:
             return None
 
-        return ColumnRef(node, node.value.id, col_names)
+        return [ColumnRef(node, node.value.id, col_names)]
 
     return None
+
+
+def extract_single_column_ref(node: ast.expr) -> ColumnRef | None:
+    """
+    Extract a single column reference from a subscript expression.
+
+    This is a convenience function that returns a single ColumnRef instead
+    of a list. Useful when you know you're dealing with a simple column
+    access pattern.
+
+    Args:
+        node: The AST expression to analyze.
+
+    Returns:
+        A `ColumnRef` if the pattern matches, `None` otherwise.
+
+    Example:
+        >>> import ast
+        >>> expr = ast.parse("df['amount']", mode="eval").body
+        >>> ref = extract_single_column_ref(expr)
+        >>> ref.df_name
+        'df'
+        >>> ref.col_names
+        ['amount']
+    """
+    refs = extract_column_ref(node)
+    return refs[0] if refs else None

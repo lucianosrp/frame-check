@@ -26,11 +26,13 @@ import ast
 
 from frame_check_core.refs import ColumnRef, is_binop
 
-from .column import extract_column_ref
+from .column import extract_single_column_ref
+from .registry import Extractor
 
 __all__ = ["extract_column_refs_from_binop"]
 
 
+@Extractor.register(priority=20, name="binop")
 def extract_column_refs_from_binop(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract all column references from a binary operation tree.
@@ -66,7 +68,7 @@ def extract_column_refs_from_binop(node: ast.expr) -> list[ColumnRef] | None:
         n = stack.pop()
         if is_binop(n):
             stack.extend([n.left, n.right])
-        elif ref := extract_column_ref(n):
+        elif ref := extract_single_column_ref(n):
             refs.append(ref)
         else:
             return None  # Non-column operand in expression

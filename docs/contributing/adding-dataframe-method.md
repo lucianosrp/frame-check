@@ -4,7 +4,7 @@ This guide shows how to add support for a new DataFrame method like `df.drop()`,
 
 ## Overview
 
-DataFrame methods are registered in the `DF` class registry using the `@DF.method()` decorator. Each handler receives the current columns and parsed arguments, then returns the updated column state.
+DataFrame methods are registered in the `DF` class registry using the `@DF.register()` decorator. Each handler receives the current columns and parsed arguments, then returns the updated column state.
 
 **Location**: `frame-check-core/src/frame_check_core/ast/dataframe.py`
 
@@ -13,7 +13,7 @@ DataFrame methods are registered in the `DF` class registry using the `@DF.metho
 ```python
 from .models import DF, DFFuncResult, Result, idx_or_key
 
-@DF.method("method_name")
+@DF.register("method_name")
 def df_method_name(
     columns: set[str], 
     args: list[Result], 
@@ -46,7 +46,7 @@ DFFuncResult = tuple[set[str], set[str] | None, IllegalAccess | None]
 ## Example: Existing `df.assign()`
 
 ```python
-@DF.method("assign")
+@DF.register("assign")
 def df_assign(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -58,7 +58,7 @@ def df_assign(
 ## Example: Existing `df.insert()`
 
 ```python
-@DF.method("insert")
+@DF.register("insert")
 def df_insert(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -86,7 +86,7 @@ df.drop(
 ### Step 2: Add the handler
 
 ```python
-@DF.method("drop")
+@DF.register("drop")
 def df_drop(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -191,7 +191,7 @@ uv run pytest tests/test_drop.py -v
 ### Adding `df.rename()`
 
 ```python
-@DF.method("rename")
+@DF.register("rename")
 def df_rename(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -218,7 +218,7 @@ def df_rename(
 ### Adding `df.copy()`
 
 ```python
-@DF.method("copy")
+@DF.register("copy")
 def df_copy(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -229,7 +229,7 @@ def df_copy(
 ### Adding `df.reset_index()`
 
 ```python
-@DF.method("reset_index")
+@DF.register("reset_index")
 def df_reset_index(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -252,7 +252,7 @@ def df_reset_index(
 ### Adding `df.set_index()`
 
 ```python
-@DF.method("set_index")
+@DF.register("set_index")
 def df_set_index(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -280,7 +280,7 @@ def df_set_index(
 ### Adding `df.filter()`
 
 ```python
-@DF.method("filter")
+@DF.register("filter")
 def df_filter(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
