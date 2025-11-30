@@ -1,0 +1,107 @@
+[project]
+site_name = "Frame Check"
+
+[project.theme]
+name = "material"
+custom_dir = "docs/overrides"
+favicon = "assets/favicon.svg"
+features = [
+    "content.code.copy",
+    "content.code.annotate",
+    "navigation.footer",
+    "navigation.indexes",
+    "navigation.top",
+    "navigation.instant",
+    "navigation.instant.prefetch",
+    "toc.integrate",
+    "toc.follow",
+]
+
+[project.theme.icon]
+logo = "custom/frame-check-logo"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+primary = "black"
+toggle = { icon = "material/brightness-auto", name = "Switch to light mode" }
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+primary = "black"
+scheme = "default"
+toggle = { icon = "material/brightness-7", name = "Switch to dark mode" }
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+primary = "black"
+scheme = "slate"
+toggle = { icon = "material/brightness-4", name = "Switch to system preference" }
+
+[[project.nav]]
+Home = "index.md"
+
+[[project.nav]]
+"Editor Integrations" = "editor.md"
+
+[[project.nav]]
+Features = [
+    "summary.md",
+    "features/index.md",
+    "features/column_assignment_methods.md",
+    "features/column_removal_methods.md",
+    "features/dataframe_creation_methods.md",
+    "features/edge_cases.md",
+]
+
+[[project.nav]]
+Contributing = [
+    "contributing/index.md",
+    "contributing/adding-pandas-function.md",
+    "contributing/adding-dataframe-method.md",
+    "contributing/adding-extractor.md",
+]
+
+[project.plugins.search]
+enabled = true
+separator = '\.'
+
+[project.plugins.gen-files]
+scripts = ["scripts/gen_features.py"]
+
+[project.plugins.mkdocstrings]
+enable_inventory = true
+
+[project.plugins.mkdocstrings.handlers.python]
+inventories = ["https://installer.readthedocs.io/en/stable/objects.inv"]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+show_signature_annotations = true
+members_order = "alphabetical"
+separate_signature = true
+
+[project.markdown_extensions]
+"pymdownx.superfences" = {}
+"pymdownx.blocks.admonition" = {}
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "material.extensions.emoji.twemoji"
+emoji_generator = "material.extensions.emoji.to_svg"
+
+[project.markdown_extensions.pymdownx.keys]
+separator = "+"
+strict = false
+camel_case = false
+
+[project.markdown_extensions.toc]
+permalink = "¶"
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[project.extra_css]
+files = ["stylesheets/extra.css"]
