@@ -1,0 +1,13 @@
+/* Allow SVG logo and favicon to inherit theme colors */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg,
+.md-logo img,
+.md-logo svg {
+    fill: currentColor;
+}
+
+/* Target paths inside inlined SVG icons */
+.md-header__button.md-logo svg path,
+.md-logo svg path {
+    fill: currentColor;
+}
