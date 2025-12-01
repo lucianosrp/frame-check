@@ -122,12 +122,9 @@ def df_drop(
 
 ### Step 3: Add tests
 
+Add tests to `frame-check-core/tests/test_checker.py`:
+
 ```python
-# tests/test_drop.py
-import pytest
-from frame_check_core.checker import Checker
-
-
 def test_drop_single_column():
     code = """
 import pandas as pd
@@ -183,7 +180,7 @@ df["A"]  # Still valid on original
 
 ```sh
 cd frame-check-core
-uv run pytest tests/test_drop.py -v
+uv run pytest tests/test_checker.py -v
 ```
 
 ## More Examples

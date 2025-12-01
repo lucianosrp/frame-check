@@ -231,7 +231,7 @@ That's it! The decorator automatically registers the extractor. No need to manua
 
 ### Step 3: Add tests
 
-Create `frame-check-core/tests/extractors/test_extract_method.py`:
+Create `frame-check-core/tests/extractors/test_method.py`:
 
 ```python
 """Tests for the method call extractor."""
@@ -299,11 +299,9 @@ def test_df_names_preserved():
 
 ### Step 4: Add integration tests
 
+Add tests to `frame-check-core/tests/test_checker.py`:
+
 ```python
-# tests/test_method_integration.py
-from frame_check_core.checker import Checker
-
-
 def test_fillna_with_valid_column():
     code = """
 import pandas as pd
@@ -330,7 +328,7 @@ df["C"] = df["A"].fillna(df["X"])  # X doesn't exist
 
 ```sh
 cd frame-check-core
-uv run pytest tests/test_extractor_method.py tests/test_method_integration.py -v
+uv run pytest tests/extractors/test_method.py tests/test_checker.py -v
 ```
 
 ## Using the Registry API

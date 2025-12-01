@@ -81,9 +81,53 @@ This means:
 
 4. **Make your changes** following the guides above
 
-5. **Add tests** for your new feature
+5. **Add tests** for your new feature (see [Test Structure](#test-structure) below)
 
 6. **Submit a PR** 🎉
+
+## Test Structure
+
+Tests are organized to mirror the source structure:
+
+```
+frame-check-core/tests/
+├── conftest.py              # Pytest configuration and fixtures
+├── test_checker.py          # Core checker tests
+├── config/                  # Tests for config module
+│   ├── test_config.py
+│   └── test_paths.py
+├── diagnostic/              # Tests for diagnostic module
+│   ├── test_diagnostics.py
+│   └── test_output.py
+├── extractors/              # Tests for extractors module
+│   ├── test_binop.py
+│   ├── test_column.py
+│   └── test_registry.py
+├── features/                # Feature/API completeness tests
+│   ├── test_column_assignment_methods.py  # CAM-* features
+│   └── test_dataframe_creation_methods.py # DCMS-* features
+└── util/                    # Tests for utility module
+    └── test_similarity.py
+```
+
+### Where to Add Tests
+
+| Test Type | Location | Example |
+|-----------|----------|---------|
+| Core checker functionality | `tests/test_checker.py` | Import detection, DataFrame tracking |
+| Extractor unit tests | `tests/extractors/test_*.py` | AST pattern matching |
+| Config tests | `tests/config/test_*.py` | Config loading, path handling |
+| Diagnostic tests | `tests/diagnostic/test_*.py` | Error messages, formatting |
+| Feature completeness | `tests/features/test_*.py` | Tests with `@pytest.mark.support` |
+
+### Feature Tests
+
+Tests in `tests/features/` track API completeness and are organized by categories from `scripts/features.toml`:
+
+- `test_dataframe_creation_methods.py` - DCMS-* (DataFrame creation)
+- `test_column_assignment_methods.py` - CAM-* (column assignment)
+
+Use the `@pytest.mark.support(code="#DCMS-1")` marker to link tests to features.
 
 ## Design Principles
 

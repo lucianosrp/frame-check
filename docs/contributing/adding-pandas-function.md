@@ -109,13 +109,9 @@ def pd_read_excel(args: list[Result], keywords: dict[str, Result]) -> PDFuncResu
 
 ### Step 3: Add tests
 
-Create or update a test file:
+Add tests to `frame-check-core/tests/test_checker.py`:
 
 ```python
-# tests/test_read_excel.py
-from frame_check_core.checker import Checker
-
-
 def test_read_excel_with_usecols():
     code = """
 import pandas as pd
