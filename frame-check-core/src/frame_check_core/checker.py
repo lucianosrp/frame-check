@@ -104,7 +104,7 @@ class Checker(ast.NodeVisitor):
         self.definitions: dict[str, Result] = {}
 
     @classmethod
-    def check(cls, code: str | Path) -> Self:
+    def check(cls, code: str | Path | ast.Module) -> Self:
         """
         Check the given code for DataFrame column access issues.
 
@@ -113,8 +113,8 @@ class Checker(ast.NodeVisitor):
         DataFrames, and generates diagnostics.
 
         Args:
-            code: The code to check. Can be a string of Python code or
-                a file path to a Python file.
+            code: The code to check. Can be a string of Python code,
+                a file path to a Python file or a AST module object.
 
         Returns:
             An instance of Checker with the analysis completed and
