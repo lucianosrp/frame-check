@@ -6,8 +6,9 @@ import argparse
 import sys
 from pathlib import Path
 
-from .checker import Checker, format_diagnostic
+from .checker import Checker
 from .config import Config, collect_python_files
+from .formatting import format_diagnostic_rich
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -108,11 +109,14 @@ def main(argv: list[str] | None = None, override_config: Config | None = None) -
     # Process each file
     for file_path in python_files:
         try:
+            source_code = file_path.read_text()
             checker = Checker.check(file_path)
             if checker.diagnostics:
                 has_errors = True
                 for diag in checker.diagnostics:
-                    print(format_diagnostic(diag, file_path))
+                    print(
+                        format_diagnostic_rich(diag, file_path, source_code=source_code)
+                    )
 
         except SyntaxError as e:
             print(f"Syntax error in {file_path}:\n{e}", file=sys.stderr)

@@ -13,10 +13,13 @@ The diagnostic messages follow a consistent format designed to be
 expressive and actionable, helping users quickly identify and fix
 issues in their DataFrame operations.
 
-Example output:
-    my_script.py:10:4: Cannot assign to df['Total']: column 'Amt' does not exist.
-      Did you mean: 'Amount'?
-      Available columns: 'Amount', 'Price', 'Quantity'
+Example CLI output:
+    my_script.py:10:4: Cannot assign to df['Total']: column 'Amt' does not exist. Did you mean 'Amount'?
+       |
+    10 | df['Total'] = df['Amt']
+       |               ^^^^^^^^^
+       |
+       = available: Amount, Price, Quantity
 """
 
 import ast
@@ -144,11 +147,14 @@ def wrong_assignment(
         - List of available columns
 
     Example:
-        For `df['Total'] = df['Ammount']` where 'Amount' exists:
+        For `df['Total'] = df['Ammount']` where 'Amount' exists, the CLI shows:
 
-        Cannot assign to df['Total']: column 'Ammount' does not exist.
-          Did you mean: 'Ammount' -> 'Amount'?
-          Available columns: 'Amount', 'Price', 'Quantity'
+        my_script.py:5:16: Cannot assign to df['Total']: column 'Ammount' does not exist. Did you mean 'Amount'?
+          |
+        5 | df['Total'] = df['Ammount']
+          |               ^^^^^^^^^^^^^
+          |
+          = available: Amount, Price, Quantity
     """
     lines: list[str] = []
 
@@ -214,11 +220,14 @@ def wrong_read(
         - List of available columns
 
     Example:
-        For `print(df['Nmae'])` where 'Name' exists:
+        For `print(df['Nmae'])` where 'Name' exists, the CLI shows:
 
-        Column 'Nmae' does not exist on DataFrame 'df'.
-          Did you mean: 'Name'?
-          Available columns: 'Age', 'Email', 'Name'
+        my_script.py:5:7: Column 'Nmae' does not exist on DataFrame 'df'. Did you mean 'Name'?
+          |
+        5 | print(df['Nmae'])
+          |       ^^^^^^^^^^
+          |
+          = available: Age, Email, Name
     """
     lines: list[str] = [f"Column '{col_name}' does not exist on DataFrame '{df_name}'."]
 

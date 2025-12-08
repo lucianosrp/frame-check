@@ -71,17 +71,12 @@ frame-check example.py
 
 **Error output:**
 ```
-example.py:12:10 - error: Column 'customer_id' does not exist
-  |
-12| result = df["customer_id"]
-  |          ^^^^^^^^^^^^^^^^^
-  |
-  | DataFrame 'df' was defined at line 4 with columns:
-  |   • Name
-  |   • Age
-  |   • City
-  |   • Salary
-  |
+example.py:12:10: Column 'customer_id' does not exist on DataFrame 'df'.
+   |
+12 | result = df["customer_id"]
+   |          ^^^^^^^^^^^^^^^^^
+   |
+   = available: Age, City, Name, Salary
 ```
 
 ## Key Benefits
