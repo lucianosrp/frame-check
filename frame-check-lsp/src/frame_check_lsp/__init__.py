@@ -2,13 +2,13 @@ import ast
 import contextlib
 import sys
 
-from frame_check_core import FrameChecker
+from frame_check_core import Checker
 from lsprotocol import types
 from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
 
 server = LanguageServer("frame-check-lsp", "v0.1")
-fc = FrameChecker()
+fc = Checker()
 
 
 @server.feature(types.TEXT_DOCUMENT_DID_CHANGE)
