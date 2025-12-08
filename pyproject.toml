@@ -50,4 +50,5 @@ exclude = ['frame-check-extensions']
 [tool.frame-check]
 exclude = [
     'frame-check-extensions/',
+    'frame-check-core/tests'
 ]
