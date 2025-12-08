@@ -164,6 +164,71 @@ def code_actions(
     return actions
 
 
+@server.feature(types.TEXT_DOCUMENT_HOVER)
+def hover(ls: LanguageServer, params: types.HoverParams) -> types.Hover | None:
+    """Show DataFrame columns on hover."""
+    global fc
+
+    text_doc = ls.workspace.get_text_document(params.text_document.uri)
+    contents = text_doc.source
+    lines = contents.splitlines()
+
+    line_num = params.position.line
+    char_pos = params.position.character
+
+    if line_num >= len(lines):
+        return None
+
+    line = lines[line_num]
+
+    # Find the word at the cursor position
+    # Match Python identifiers
+    word_start = char_pos
+    word_end = char_pos
+
+    # Expand left to find start of word
+    while word_start > 0 and (
+        line[word_start - 1].isalnum() or line[word_start - 1] == "_"
+    ):
+        word_start -= 1
+
+    # Expand right to find end of word
+    while word_end < len(line) and (line[word_end].isalnum() or line[word_end] == "_"):
+        word_end += 1
+
+    if word_start == word_end:
+        return None
+
+    word = line[word_start:word_end]
+
+    # Check if this word is a known DataFrame
+    if word not in fc.dfs:
+        return None
+
+    tracker = fc.dfs[word]
+    columns = list(tracker.columns.keys())
+
+    if not columns:
+        hover_text = f"**DataFrame `{word}`**\n\nNo columns detected."
+    else:
+        sorted_cols = sorted(columns)
+        cols_formatted = ", ".join(f"`{c}`" for c in sorted_cols)
+        hover_text = (
+            f"**DataFrame `{word}`**\n\n**Columns ({len(columns)}):** {cols_formatted}"
+        )
+
+    return types.Hover(
+        contents=types.MarkupContent(
+            kind=types.MarkupKind.Markdown,
+            value=hover_text,
+        ),
+        range=types.Range(
+            start=types.Position(line=line_num, character=word_start),
+            end=types.Position(line=line_num, character=word_end),
+        ),
+    )
+
+
 def main():
     # Remove --stdio argument if present, as pygls handles stdio by default
     args = [arg for arg in sys.argv[1:] if arg != "--stdio"]
