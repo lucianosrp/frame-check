@@ -167,9 +167,12 @@ def wrong_assignment(
 
     # Suggestions for each missing column
     suggestions: list[str] = []
+    first_suggestion: str | None = None
     for col in missing_cols:
         if similar := zero_deps_jaro_winkler(col, available_cols):
             suggestions.append(f"'{col}' -> '{similar}'")
+            if first_suggestion is None:
+                first_suggestion = similar
 
     if suggestions:
         lines.append(f"  Did you mean: {', '.join(suggestions)}?")
@@ -182,6 +185,7 @@ def wrong_assignment(
         message="\n".join(lines),
         severity=Severity.ERROR,
         region=CodeRegion.from_ast_node(node=write_node),
+        name_suggestion=first_suggestion,
     )
 
 
@@ -219,7 +223,8 @@ def wrong_read(
     lines: list[str] = [f"Column '{col_name}' does not exist on DataFrame '{df_name}'."]
 
     # Suggestion if similar column exists
-    if similar := zero_deps_jaro_winkler(col_name, available_cols):
+    similar = zero_deps_jaro_winkler(col_name, available_cols)
+    if similar:
         lines.append(f"  Did you mean: '{similar}'?")
 
     # Show available columns
@@ -230,4 +235,5 @@ def wrong_read(
         message="\n".join(lines),
         severity=Severity.ERROR,
         region=CodeRegion.from_ast_node(node=node),
+        name_suggestion=similar,
     )
