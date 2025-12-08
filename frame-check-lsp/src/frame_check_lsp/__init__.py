@@ -57,44 +57,6 @@ async def frame_diagnostics(
                     )
                 )
 
-                # Optional hint at data definition site
-                if diagnostic.data_src_region is not None and len(diagnostic.hint) > 1:
-                    data_hint_msg = "Data defined here with columns:\n" + "\n".join(
-                        diagnostic.hint[1:]
-                    )
-                    ls_diagnostics.append(
-                        types.Diagnostic(
-                            range=types.Range(
-                                start=types.Position(
-                                    *diagnostic.data_src_region.start.as_lsp_position()
-                                ),
-                                end=types.Position(
-                                    *diagnostic.data_src_region.end.as_lsp_position()
-                                ),
-                            ),
-                            message=data_hint_msg,
-                            source="Frame Checker",
-                            severity=types.DiagnosticSeverity.Hint,
-                        )
-                    )
-                elif diagnostic.data_src_region is not None:
-                    # Fallback if no separate columns list
-                    data_hint_msg = "\n".join(diagnostic.hint)
-                    ls_diagnostics.append(
-                        types.Diagnostic(
-                            range=types.Range(
-                                start=types.Position(
-                                    *diagnostic.data_src_region.start.as_lsp_position()
-                                ),
-                                end=types.Position(
-                                    *diagnostic.data_src_region.end.as_lsp_position()
-                                ),
-                            ),
-                            message=data_hint_msg,
-                            source="Frame Checker",
-                            severity=types.DiagnosticSeverity.Hint,
-                        )
-                    )
         # Send diagnostics (moved outside the loop to always run, even with empty diagnostics)
         ls.text_document_publish_diagnostics(
             types.PublishDiagnosticsParams(uri=text_doc.uri, diagnostics=ls_diagnostics)
