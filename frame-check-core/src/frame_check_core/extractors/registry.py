@@ -71,7 +71,6 @@ class Extractor:
     """
 
     _registry: list[_RegisteredExtractor] = []
-    _sorted: bool = True
 
     @classmethod
     def register(
@@ -105,17 +104,9 @@ class Extractor:
                 func=func,
             )
             cls._registry.append(registered)
-            cls._sorted = False
             return func
 
         return decorator
-
-    @classmethod
-    def _ensure_sorted(cls) -> None:
-        """Ensure the registry is sorted by priority."""
-        if not cls._sorted:
-            cls._registry.sort()
-            cls._sorted = True
 
     @classmethod
     def extract(cls, node: ast.expr) -> list[ColumnRef] | None:
@@ -138,9 +129,7 @@ class Extractor:
             >>> [ref.col_names[0] for ref in refs]
             ['A', 'B']
         """
-        cls._ensure_sorted()
-
-        for registered in cls._registry:
+        for registered in sorted(cls._registry):
             if refs := registered.func(node):
                 return refs
 
@@ -160,36 +149,4 @@ class Extractor:
             10: extract_column_ref
             20: extract_binop
         """
-        cls._ensure_sorted()
-        return [(r.priority, r.name, r.func) for r in cls._registry]
-
-    @classmethod
-    def clear(cls) -> None:
-        """
-        Clear all registered extractors.
-
-        Primarily useful for testing.
-        """
-        cls._registry.clear()
-        cls._sorted = True
-
-    @classmethod
-    def unregister(cls, name: str) -> bool:
-        """
-        Unregister an extractor by name.
-
-        Args:
-            name: The name of the extractor to remove.
-
-        Returns:
-            True if the extractor was found and removed, False otherwise.
-
-        Example:
-            >>> Extractor.unregister("my_extractor")
-            True
-        """
-        for i, registered in enumerate(cls._registry):
-            if registered.name == name:
-                cls._registry.pop(i)
-                return True
-        return False
+        return [(r.priority, r.name, r.func) for r in sorted(cls._registry)]

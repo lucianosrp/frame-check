@@ -12,13 +12,16 @@ def clean_registry():
     """Save and restore the registry state around each test."""
     # Save the current registry state
     original_registry = Extractor._registry.copy()
-    original_sorted = Extractor._sorted
 
     yield
 
     # Restore the registry state
     Extractor._registry = original_registry
-    Extractor._sorted = original_sorted
+
+
+def _clear_registry():
+    """Helper to clear the registry for tests that need an empty state."""
+    Extractor._registry.clear()
 
 
 # --- Extractor Registration Tests ---
@@ -51,7 +54,7 @@ def test_register_with_custom_name():
 
 def test_priority_ordering():
     """Test that extractors are ordered by priority."""
-    Extractor.clear()
+    _clear_registry()
 
     @Extractor.register(priority=30, name="third")
     def ext3(node: ast.expr) -> list[ColumnRef] | None:
@@ -72,7 +75,7 @@ def test_priority_ordering():
 
 def test_default_priority():
     """Test that default priority is 50."""
-    Extractor.clear()
+    _clear_registry()
 
     @Extractor.register(name="default_priority")
     def ext_default(node: ast.expr) -> list[ColumnRef] | None:
@@ -90,7 +93,7 @@ def test_default_priority():
 
 def test_extract_returns_first_match():
     """Test that extract returns the first matching extractor's result."""
-    Extractor.clear()
+    _clear_registry()
 
     @Extractor.register(priority=10, name="always_none")
     def ext_none(node: ast.expr) -> list[ColumnRef] | None:
@@ -117,7 +120,7 @@ def test_extract_returns_first_match():
 
 def test_extract_returns_none_when_no_match():
     """Test that extract returns None when no extractor matches."""
-    Extractor.clear()
+    _clear_registry()
 
     @Extractor.register(priority=10, name="no_match")
     def ext_no_match(node: ast.expr) -> list[ColumnRef] | None:
@@ -131,7 +134,7 @@ def test_extract_returns_none_when_no_match():
 
 def test_extract_with_empty_registry():
     """Test extract with no registered extractors."""
-    Extractor.clear()
+    _clear_registry()
 
     expr = ast.parse("df['A']", mode="eval").body
     refs = Extractor.extract(expr)
@@ -139,47 +142,9 @@ def test_extract_with_empty_registry():
     assert refs is None
 
 
-# --- Extractor Management Tests ---
-
-
-def test_clear():
-    """Test clearing the registry."""
-    Extractor.clear()
-
-    @Extractor.register(priority=10, name="to_clear")
-    def ext(node: ast.expr) -> list[ColumnRef] | None:
-        return None
-
-    assert len(Extractor.get_registered()) > 0
-
-    Extractor.clear()
-
-    assert len(Extractor.get_registered()) == 0
-
-
-def test_unregister_existing():
-    """Test unregistering an existing extractor."""
-    Extractor.clear()
-
-    @Extractor.register(priority=10, name="to_remove")
-    def ext(node: ast.expr) -> list[ColumnRef] | None:
-        return None
-
-    assert Extractor.unregister("to_remove") is True
-    names = [name for _, name, _ in Extractor.get_registered()]
-    assert "to_remove" not in names
-
-
-def test_unregister_nonexistent():
-    """Test unregistering a non-existent extractor."""
-    Extractor.clear()
-
-    assert Extractor.unregister("nonexistent") is False
-
-
 def test_get_registered_returns_sorted_by_priority():
     """Test that get_registered returns the extractors sorted by priority."""
-    Extractor.clear()
+    _clear_registry()
 
     @Extractor.register(priority=20, name="second")
     def ext2(node: ast.expr) -> list[ColumnRef] | None:
