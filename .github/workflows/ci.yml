@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   test:
     name: Test Python ${{ matrix.python-version }} on ${{ matrix.os }}
@@ -63,7 +67,6 @@ jobs:
         with:
           mode: instrumentation
           run: uv run pytest --codspeed
-          token: ${{ secrets.CODSPEED_TOKEN }}
 
   pre-commit-ci:
     name: Pre-commit CI
