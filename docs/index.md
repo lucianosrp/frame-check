@@ -96,7 +96,7 @@ example.py:12:10: Column 'customer_id' does not exist on DataFrame 'df'.
 === "git clone + uv (Manual dev install)"
 
     ```sh
-    git clone https://github.com/lucianosrp/frame-check.git
+    git clone https://github.com/frame-check/frame-check.git
     cd frame-check/frame-check-core
     uv tool install . -e
     ```

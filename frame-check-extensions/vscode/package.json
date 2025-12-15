@@ -78,7 +78,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lucianosrp/frame-check.git"
+    "url": "https://github.com/frame-check/frame-check.git"
   },
   "license": "MIT"
 }

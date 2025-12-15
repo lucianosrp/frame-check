@@ -114,7 +114,7 @@ Then press F5 in VS Code to launch a new Extension Development Host window.
 
 ## Contributing
 
-Contributions are welcome! Please see the main [Frame Check repository](https://github.com/lucianosrp/frame-check) for contribution guidelines.
+Contributions are welcome! Please see the main [Frame Check repository](https://github.com/frame-check/frame-check) for contribution guidelines.
 
 ## License
 

@@ -103,7 +103,7 @@ This means:
 
 1. **Clone the repository**
    ```sh
-   git clone https://github.com/lucianosrp/frame-check.git
+   git clone https://github.com/frame-check/frame-check.git
    cd frame-check
    ```
 
