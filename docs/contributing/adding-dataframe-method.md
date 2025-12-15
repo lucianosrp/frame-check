@@ -6,7 +6,7 @@ This guide shows how to add support for a new DataFrame method like `df.drop()`,
 
 DataFrame methods are registered in the `DF` class registry using the `@DF.register()` decorator. Each handler receives the current columns and parsed arguments, then returns the updated column state.
 
-**Location**: `frame-check-core/src/frame_check_core/ast/dataframe.py`
+**Location**: `frame-check-core/src/frame_check_core/handlers/dataframe.py`
 
 ## The Pattern
 

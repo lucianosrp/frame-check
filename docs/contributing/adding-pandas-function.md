@@ -6,7 +6,7 @@ This guide shows how to add support for a new pandas function like `pd.read_exce
 
 Pandas functions are registered in the `PD` class registry using the `@PD.register()` decorator. Each handler receives parsed arguments and returns the columns that would exist on the resulting DataFrame.
 
-**Location**: `frame-check-core/src/frame_check_core/ast/pandas.py`
+**Location**: `frame-check-core/src/frame_check_core/handlers/pandas.py`
 
 ## The Pattern
 

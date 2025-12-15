@@ -23,12 +23,9 @@ import ast
 
 from frame_check_core.refs import ColumnRef, is_constant, is_name, is_subscript
 
-from .registry import Extractor
-
-__all__ = ["extract_column_ref"]
+__all__ = ["extract_column_ref", "extract_single_column_ref"]
 
 
-@Extractor.register(priority=10, name="column_ref")
 def extract_column_ref(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract a column reference from a subscript expression.

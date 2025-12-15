@@ -11,11 +11,11 @@ frame-check-core/
 ├── checker.py          # Main AST visitor (entry point)
 ├── tracker.py          # Column dependency tracking
 ├── refs.py             # Type guards and ColumnRef dataclass
-├── ast/
-│   ├── models.py       # PD/DF registries for method handlers
+├── handlers/           # Operation handlers (what columns are CREATED/MODIFIED)
+│   ├── models.py       # PD/DF registries for operation handlers
 │   ├── pandas.py       # pd.* function handlers
 │   └── dataframe.py    # df.* method handlers
-├── extractors/         # Column reference extraction
+├── extractors/         # Column extractors (what columns are READ)
 │   ├── registry.py     # Extractor registry
 │   ├── column.py       # df['col'] patterns
 │   └── binop.py        # df['A'] + df['B'] patterns
@@ -23,19 +23,45 @@ frame-check-core/
 └── config/             # Configuration management
 ```
 
+### Handlers vs Extractors
+
+These two modules serve complementary purposes:
+
+| Module | Purpose | What they handle | Example |
+|--------|---------|------------------|---------|
+| **Handlers** | Track column state changes | Pandas API calls that create/modify/delete columns | `pd.DataFrame({'A': [1]})` creates 'A' |
+| **Extractors** | Identify column references | Operations between columns and expressions | `df['A'] + df['B']` reads 'A' and 'B' |
+
+**Handlers** (Pandas core methods) answer: "What columns exist after this operation?"
+- Creating DataFrames: `pd.DataFrame()`, `pd.read_csv()`
+- Adding columns: `df.assign(B=1)`, `df.insert()`
+- Removing columns: `df.drop('A')`
+- Resizing/reshaping frames: `df.melt()`, `df.pivot()`
+
+**Extractors** (Operations between columns) answer: "What columns are being accessed here?"
+- Column access: `df['A']`, `df[['A', 'B']]`
+- Binary operations: `df['A'] + df['B']`, `df['A'] * 2`
+- Comparisons: `df['A'] > df['B']`
+- Assignments: `df['C'] = df['A'] + df['B']` (RHS is extracted)
+
+**How they work together:**
+The checker uses **handlers** to build a model of what columns should exist, then uses **extractors** to validate that accessed columns are actually present. For example, in `df['C'] = df['A'] + df['B']`, the extractor identifies that columns 'A' and 'B' are being read, while the handler knows that column 'C' is being created.
+
 ## Extension Points
 
-frame-check is designed to be extensible using **decorator-based registries**. There are three main ways to add features:
+frame-check is designed to be extensible. There are three main ways to add features:
 
-| Extension Type | Decorator | Use Case | Difficulty |
+| Extension Type | Registration | Use Case | Difficulty |
 |---------------|-----------|----------|------------|
-| [Pandas Function](./adding-pandas-function.md) | `@PD.register()` | Add support for `pd.read_excel()`, `pd.concat()`, etc. | ⭐ Easy |
-| [DataFrame Method](./adding-dataframe-method.md) | `@DF.register()` | Add support for `df.drop()`, `df.rename()`, etc. | ⭐ Easy |
-| [Extractor](./adding-extractor.md) | `@Extractor.register()` | Handle new column reference patterns | ⭐ Easy |
+| [Pandas Function](./adding-pandas-function.md) | `@PD.register()` decorator | Add support for `pd.read_excel()`, `pd.concat()`, etc. | ⭐ Easy |
+| [DataFrame Method](./adding-dataframe-method.md) | `@DF.register()` decorator | Add support for `df.drop()`, `df.rename()`, etc. | ⭐ Easy |
+| [Extractor](./adding-extractor.md) | Add to `EXTRACTORS` list | Handle new column reference patterns | ⭐ Easy |
 
-### Registry Pattern
+### Registry Patterns
 
-All three extension types follow the same pattern:
+#### Pandas Functions and DataFrame Methods
+
+These use decorator-based registration:
 
 ```python
 # Pandas functions
@@ -47,18 +73,31 @@ def pd_read_excel(args, keywords) -> PDFuncResult:
 @DF.register("drop")
 def df_drop(columns, args, keywords) -> DFFuncResult:
     ...
-
-# Extractors
-@Extractor.register(priority=40, name="method_call")
-def extract_method_call(node: ast.expr) -> list[ColumnRef] | None:
-    ...
 ```
 
 This means:
 - **No manual registration** - decorators handle it automatically
 - **Automatic discovery** - just import the module
-- **Priority ordering** - extractors are tried in priority order
 - **Easy testing** - registries can be cleared/modified in tests
+
+#### Extractors
+
+Extractors use explicit list-based registration in `registry.py`:
+
+```python
+# In registry.py
+EXTRACTORS: list[ExtractorFunc] = [
+    extract_column_ref,                # df['col'] - most common
+    extract_column_refs_from_binop,    # df['A'] + df['B']
+    extract_method_call,               # Add your extractor here
+]
+```
+
+This means:
+- **All in one place** - see all extractors and their order
+- **Clear ordering** - earlier in the list = tried first
+- **No sorting overhead** - list is already in order
+- **Simple to add** - just import and add to the list
 
 ## Quick Start
 
@@ -136,7 +175,7 @@ When contributing, keep these principles in mind:
 - **Fail gracefully**: Return `None` when a pattern isn't recognized rather than crashing
 - **Be conservative**: Only report errors when you're confident something is wrong
 - **Compose existing tools**: Reuse extractors and utilities where possible
-- **Use the registries**: Don't hardcode - use `@PD.register()`, `@DF.register()`, or `@Extractor.register()`
+- **Use the registries**: Don't hardcode - use `@PD.register()`, `@DF.register()`, or add to the `EXTRACTORS` list
 - **Test thoroughly**: Each feature should have corresponding tests
 - **Document clearly**: Add docstrings and update relevant documentation
 

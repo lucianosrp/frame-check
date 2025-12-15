@@ -4,7 +4,7 @@ This guide shows how to add a new extractor to recognize column reference patter
 
 ## Overview
 
-Extractors identify DataFrame column references in various AST expression patterns. Each extractor is registered using the `@Extractor.register()` decorator and returns `ColumnRef` objects that the checker uses for validation.
+Extractors identify DataFrame column references in various AST expression patterns. Each extractor is a simple function that returns `ColumnRef` objects that the checker uses for validation.
 
 **Location**: `frame-check-core/src/frame_check_core/extractors/`
 
@@ -16,10 +16,8 @@ Add a new extractor when you want to track column references in a pattern that i
 
 ```python
 import ast
-from frame_check_core.extractors import Extractor
 from frame_check_core.refs import ColumnRef
 
-@Extractor.register(priority=30, name="my_pattern")
 def extract_my_pattern(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract column references from my pattern.
@@ -39,28 +37,14 @@ def extract_my_pattern(node: ast.expr) -> list[ColumnRef] | None:
     return refs if refs else None
 ```
 
-### The `@Extractor.register()` Decorator
+### Function Signature
+
+Every extractor must have this signature:
 
 ```python
-@Extractor.register(priority=30, name="my_extractor")
 def my_extractor(node: ast.expr) -> list[ColumnRef] | None:
     ...
 ```
-
-**Parameters:**
-
-- `priority` (int, default=50): Lower numbers are tried first
-- `name` (str, optional): Name for the extractor. Defaults to the function name.
-
-**Priority Ranges:**
-
-| Range | Use Case | Examples |
-|-------|----------|----------|
-| 0-19 | Fast, common patterns | Simple column access (`df['col']`) |
-| 20-39 | Moderately common | Binary operations (`df['A'] + df['B']`) |
-| 40-59 | Less common patterns | Method calls, comparisons |
-| 60-79 | Rare patterns | Complex nested expressions |
-| 80-99 | Fallback/catch-all | Last-resort patterns |
 
 ### Return Type
 
@@ -82,7 +66,6 @@ class ColumnRef:
 The simplest extractor handles `df['col']` patterns:
 
 ```python
-@Extractor.register(priority=10, name="column_ref")
 def extract_column_ref(node: ast.expr) -> list[ColumnRef] | None:
     if not is_subscript(node):
         return None
@@ -119,7 +102,6 @@ def extract_column_ref(node: ast.expr) -> list[ColumnRef] | None:
 Handles binary operations like `df['A'] + df['B']`:
 
 ```python
-@Extractor.register(priority=20, name="binop")
 def extract_column_refs_from_binop(node: ast.expr) -> list[ColumnRef] | None:
     if not is_binop(node):
         return None
@@ -168,12 +150,10 @@ import ast
 from frame_check_core.refs import ColumnRef
 
 from .column import extract_single_column_ref
-from .registry import Extractor
 
 __all__ = ["extract_column_refs_from_method"]
 
 
-@Extractor.register(priority=40, name="method_call")
 def extract_column_refs_from_method(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract column references from a method call on a column.
@@ -215,21 +195,48 @@ def extract_column_refs_from_method(node: ast.expr) -> list[ColumnRef] | None:
     return refs
 ```
 
-### Step 2: Import to trigger registration
+### Step 2: Register in registry.py
 
-Update `frame-check-core/src/frame_check_core/extractors/__init__.py`:
+Update `frame-check-core/src/frame_check_core/extractors/registry.py`:
 
-```python hl_lines="4"
-# Import extractors to trigger their registration
+```python hl_lines="9 14"
+# Import all extractors
+from .binop import extract_column_refs_from_binop
+from .column import extract_column_ref
+from .method import extract_column_refs_from_method  # ADD THIS
+
+# Extractors to use, in priority order (earlier = tried first)
+EXTRACTORS: list[ExtractorFunc] = [
+    extract_column_ref,                # df['col'] and df[['a', 'b']] - most common
+    extract_column_refs_from_binop,    # df['A'] + df['B'] - binary operations
+    extract_column_refs_from_method,   # df['A'].fillna(df['B']) - method calls
+]
+```
+
+That's it! Just add your function to the list in the order you want it tried.
+
+### Step 3: Export from __init__.py (optional)
+
+If you want users to be able to import your extractor directly, add it to `frame-check-core/src/frame_check_core/extractors/__init__.py`:
+
+```python hl_lines="4 12"
+# Individual extractors (for direct use)
 from .binop import extract_column_refs_from_binop
 from .column import extract_column_ref, extract_single_column_ref
 from .method import extract_column_refs_from_method  # ADD THIS
-from .registry import Extractor
+
+__all__ = [
+    "Extractor",
+    "ColumnRef",
+    "extract_column_ref",
+    "extract_single_column_ref",
+    "extract_column_refs_from_binop",
+    "extract_column_refs_from_method",  # ADD THIS
+    "extract",
+]
 ```
 
-That's it! The decorator automatically registers the extractor. No need to manually add it to a list or modify `extract`.
-
-### Step 3: Add tests
+### Step 4: Add tests
 
 Create `frame-check-core/tests/extractors/test_method.py`:
 
@@ -297,7 +304,7 @@ def test_df_names_preserved():
     assert df_names == {"df1", "df2"}
 ```
 
-### Step 4: Add integration tests
+### Step 5: Add integration tests
 
 Add tests to `frame-check-core/tests/test_checker.py`:
 
@@ -324,7 +331,7 @@ df["C"] = df["A"].fillna(df["X"])  # X doesn't exist
     assert "X" in fc.diagnostics[0].message
 ```
 
-### Step 5: Run tests
+### Step 6: Run tests
 
 ```sh
 cd frame-check-core
@@ -339,15 +346,16 @@ uv run pytest tests/extractors/test_method.py tests/test_checker.py -v
 from frame_check_core.extractors import Extractor
 
 # Get all registered extractors
-for priority, name, func in Extractor.get_registered():
-    print(f"{priority}: {name}")
+extractors = Extractor.get_registered()
+for func in extractors:
+    print(func.__name__)
 ```
 
 Output:
 ```
-10: column_ref
-20: binop
-40: method_call
+extract_column_ref
+extract_column_refs_from_binop
+extract_column_refs_from_method
 ```
 
 ### Extracting Column References
@@ -362,7 +370,6 @@ refs = Extractor.extract(expr)
 for ref in refs:
     print(f"{ref.df_name}[{ref.col_names}]")
 ```
-
 
 ## Type Guards
 
@@ -387,10 +394,7 @@ if is_name(node):
 
 2. **Use `extract_single_column_ref`**: This is your building block for recognizing `df['col']` patterns within larger expressions. It returns a single `ColumnRef` instead of a list.
 
-3. **Choose priority carefully**: 
-   - Lower priority = tried first
-   - Put specific patterns before general ones
-   - Leave gaps for future extractors (use 10, 20, 30 not 1, 2, 3)
+3. **Order matters**: Extractors earlier in the `EXTRACTORS` list are tried first. Put more specific patterns before general ones.
 
 4. **Handle partial matches carefully**: Decide whether partial matches (e.g., `df['A'] + 1`) should return partial results or `None`.
 
@@ -433,11 +437,12 @@ This helps you understand exactly what AST pattern you need to match!
 
 ## Summary
 
-Adding an extractor is now simpler than ever:
+Adding an extractor is simple:
 
 1. **Create a function** that takes `ast.expr` and returns `list[ColumnRef] | None`
-2. **Decorate it** with `@Extractor.register(priority=N, name="my_extractor")`
-3. **Import it** in `__init__.py` to trigger registration
-4. **Add tests**
+2. **Import it** in `registry.py`
+3. **Add it to the `EXTRACTORS` list** in the order you want it tried
+4. **Optionally export it** from `__init__.py`
+5. **Add tests**
 
-The registry handles everything else - ordering, iteration, and integration with the checker.
+That's it! No decorators, no priority numbers, just a simple list.

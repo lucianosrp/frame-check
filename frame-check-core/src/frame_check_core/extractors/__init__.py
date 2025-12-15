@@ -1,14 +1,12 @@
 """
 Extractors for identifying DataFrame column references in Python AST.
 
-This package provides a unified interface for extracting column references
-from various AST expression patterns. Each extractor handles a specific
-pattern type (simple subscripts, binary operations, method calls, etc.)
+This package provides extractors for various AST expression patterns.
+Each extractor handles a specific pattern type (subscripts, binary operations, etc.)
 and returns structured `ColumnRef` objects.
 
 Usage:
-    The main entry point is `Extractor.extract()`, which tries all registered
-    extractors in priority order and returns the first successful match:
+    The main entry point is `Extractor.extract()`:
 
     >>> from frame_check_core.extractors import Extractor
     >>> import ast
@@ -17,42 +15,30 @@ Usage:
     >>> [ref.col_names[0] for ref in refs]
     ['A', 'B']
 
-    For specific patterns, individual extractors can be used directly:
+    Or use the module-level convenience function:
 
-    >>> from frame_check_core.extractors import extract_column_ref
-    >>> expr = ast.parse("df['amount']", mode="eval").body
-    >>> refs = extract_column_ref(expr)
-    >>> refs[0].col_names
-    ['amount']
+    >>> from frame_check_core.extractors import extract
+    >>> extract(expr)
+    [ColumnRef(...), ColumnRef(...)]
 
 Adding new extractors:
-    Use the `@Extractor.register()` decorator:
+    1. Create a new module in this package with your extractor function
+    2. Import it in registry.py
+    3. Add it to the EXTRACTORS list in registry.py
 
-    >>> from frame_check_core.extractors import Extractor
-    >>> from frame_check_core.refs import ColumnRef
-    >>>
-    >>> @Extractor.register(priority=30, name="my_pattern")
-    ... def extract_my_pattern(node: ast.expr) -> list[ColumnRef] | None:
-    ...     # Extract column references from your pattern
-    ...     ...
-
-Priority:
-    Lower priority numbers are tried first. Suggested ranges:
-    - 0-19: Fast, common patterns (e.g., simple column access)
-    - 20-39: Moderately common patterns (e.g., binary operations)
-    - 40-59: Less common patterns (e.g., method calls)
-    - 60-79: Rare patterns
-    - 80-99: Fallback/catch-all patterns
+The EXTRACTORS list in registry.py defines which extractors are used
+and in what order. Extractors earlier in the list are tried first.
 """
 
 import ast
 
 from frame_check_core.refs import ColumnRef
 
+# Individual extractors (for direct use)
 from .binop import extract_column_refs_from_binop
-
-# Import extractors to trigger their registration
 from .column import extract_column_ref, extract_single_column_ref
+
+# Registry
 from .registry import Extractor
 
 __all__ = [
@@ -72,8 +58,8 @@ def extract(node: ast.expr) -> list[ColumnRef] | None:
     """
     Extract column references from any recognized RHS expression pattern.
 
-    This function is sugar-coating for `Extractor.extract()`
-    which tries all registered extractors in priority order.
+    This function is a convenience wrapper for `Extractor.extract()`
+    which tries all registered extractors in list order.
 
     Args:
         node: The AST expression to analyze (typically the RHS of an assignment).
