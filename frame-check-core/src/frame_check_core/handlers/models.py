@@ -1,7 +1,7 @@
 import ast
 from typing import Callable, Iterable, Union
 
-from ..models.diagnostic import IllegalAccess
+from ..diagnostic import IllegalAccess
 
 
 class _Unknown:
@@ -112,7 +112,7 @@ class PD:
         return None
 
     @classmethod
-    def method(cls, name: str):
+    def register(cls, name: str):
         def decorator(func: PDFunc):
             cls.func_registry[name] = func
             return func
@@ -162,7 +162,7 @@ class DF:
         return None
 
     @classmethod
-    def method(cls, name: str):
+    def register(cls, name: str):
         def decorator(func: DFFunc):
             cls.func_registry[name] = func
             return func

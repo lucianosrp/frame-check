@@ -1,41 +1,28 @@
-name: docs
-
+name: Documentation
 on:
   push:
     branches:
       - main
-
 permissions:
-  contents: write
-
+  contents: read
+  pages: write
+  id-token: write
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure Git Credentials
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/configure-pages@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version-file: "pyproject.toml"
-
-      - name: Cache uv
-        uses: actions/cache@v4
+          python-version: 3.x
+      - run: pip install zensical
+      - run: zensical build --clean
+      - uses: actions/upload-pages-artifact@v4
         with:
-          key: uv-${{ runner.os }}-${{ hashFiles('pyproject.toml', 'uv.lock') }}
-          path: ~/.cache/uv
-          restore-keys: |
-            uv-${{ runner.os }}-
-
-      - uses: astral-sh/setup-uv@v6
-
-      - name: Install dependencies
-        run: uv sync --all-groups
-
-      - name: Deploy to GitHub Pages
-        run: uv run mkdocs gh-deploy --force
+          path: site
+      - uses: actions/deploy-pages@v4
+        id: deployment

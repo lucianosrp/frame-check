@@ -1,7 +1,7 @@
 from .models import DF, DFFuncResult, Result, idx_or_key
 
 
-@DF.method("assign")
+@DF.register("assign")
 def df_assign(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:
@@ -9,7 +9,7 @@ def df_assign(
     return columns, returned, None
 
 
-@DF.method("insert")
+@DF.register("insert")
 def df_insert(
     columns: set[str], args: list[Result], keywords: dict[str, Result]
 ) -> DFFuncResult:

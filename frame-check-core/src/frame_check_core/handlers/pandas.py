@@ -1,7 +1,7 @@
 from .models import PD, PDFuncResult, Result, idx_or_key
 
 
-@PD.method("DataFrame")
+@PD.register("DataFrame")
 def pd_dataframe(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     data = idx_or_key(args, keywords, idx=0, key="data")
     match data:
@@ -18,7 +18,7 @@ def pd_dataframe(args: list[Result], keywords: dict[str, Result]) -> PDFuncResul
             return None, None
 
 
-@PD.method("read_csv")
+@PD.register("read_csv")
 def pd_read_csv(args: list[Result], keywords: dict[str, Result]) -> PDFuncResult:
     usecols = idx_or_key(args, keywords, key="usecols")
     match usecols:
