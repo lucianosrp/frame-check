@@ -14,7 +14,7 @@ class Tracker[M: Strict | Relaxed]:
 
     __slots__ = ("id_", "columns", "mode", "_is_strict")
 
-    def __init__(self, id_: str, mode: M = "strict") -> None:
+    def __init__(self, id_: str, mode: M = "strict") -> None:  # type: ignore[assignment]
         self.id_ = id_
         self.columns: dict[str, set[str]] = {}
         self.mode = mode

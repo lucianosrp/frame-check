@@ -129,6 +129,8 @@ class Checker(ast.NodeVisitor):
         if isinstance(code, Path):
             source = code.read_text()
             tree = ast.parse(source, filename=str(code))
+        elif isinstance(code, ast.Module):
+            tree = code
         else:
             tree = ast.parse(code)
         checker.visit(tree)
