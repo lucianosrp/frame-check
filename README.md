@@ -100,7 +100,7 @@ example.py:12:10: Column 'customer_id' does not exist on DataFrame 'df'.
 
 We welcome contributions from the community! Here's how you can help:
 
-- **Report bugs**: If you find a bug or issue, please open an issue on our [GitHub repository](https://github.com/lucianosrp/frame-check).
+- **Report bugs**: If you find a bug or issue, please open an issue on our [GitHub repository](https://github.com/frame-check/frame-check).
 - **Submit pull requests**: If you have a fix or improvement, feel free to submit a pull request.
 - **Discuss features**: Join our discussion forum to share ideas and feedback.
 - **Spread the word**: Help us spread the word about **frame-check** by sharing it with your network.
@@ -108,7 +108,7 @@ We welcome contributions from the community! Here's how you can help:
 ### Clone the repository
 
 ```
-git clone https://github.com/lucianosrp/frame-check.git
+git clone https://github.com/frame-check/frame-check.git
 ```
 
 ### Create an environment
@@ -137,7 +137,7 @@ Each component should then have a README.md file with instructions on how to run
 | <a id="CAM-9"></a>CAM-9   | Insert Method     | df.insert(0, "A", [1, 2, 3])               | Inserts a column at a specific position in the DataFrame. Modifies in place.                                | ✅          |
 | <a id="CAM-10"></a>CAM-10 | Setitem With List | df[["c", "d"]] = [[7, 8, 9], [10, 11, 12]] | Assigns multiple columns at once, either from other columns or external values.                             | ✅          |
 
-Note: the full list of supported features can be found [here](https://lucianosrp.github.io/frame-check/features/).
+Note: the full list of supported features can be found [here](https://frame-check.github.io/frame-check/features/).
 
 ---
 
