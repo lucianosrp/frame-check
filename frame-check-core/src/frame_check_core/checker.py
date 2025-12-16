@@ -36,7 +36,6 @@ from frame_check_core import diagnostic
 from frame_check_core.extractors import extract, extract_single_column_ref
 
 # Ensure pandas and dataframe handlers are registered
-from frame_check_core.handlers import pandas as _pandas  # noqa: F401
 from frame_check_core.handlers.models import DF, PD, Result, get_result
 from frame_check_core.tracker import Relaxed, Strict, Tracker
 

@@ -45,7 +45,7 @@ Home = "index.md"
 
 [[project.nav]]
 Features = [
-    "summary.md",
+    "features/index.md",
     # "features/index.md",
     # "features/column_assignment_methods.md",
     # "features/column_removal_methods.md",

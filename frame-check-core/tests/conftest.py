@@ -64,25 +64,25 @@ def pytest_runtest_makereport(item, call):
             )
 
 
-def update_readme(dataframes: dict[str, pd.DataFrame]):
+def update_markdown(dataframes: dict[str, pd.DataFrame]):
     """
-    Update readme support tables
+    Update markdown support tables
     Update section under ## Supported Features header
     """
-    readme_path = "README.md"
-    if not os.path.exists(readme_path):
-        print(f"Warning: {readme_path} not found, skipping update.")
+    markdown_path = "../docs/features/summary.md"
+    if not os.path.exists(markdown_path):
+        print(f"Warning: {markdown_path} not found, skipping update.")
         return
 
-    # Read the README content
-    with open(readme_path, "r") as f:
+    # Read the markdown content
+    with open(markdown_path, "r") as f:
         content = f.read()
 
     # Find the supported features section
-    support_section_pattern = r"## Supported Features\s*\n(.*?)\n---"
+    support_section_pattern = r"# Supported Features\s*\n(.*?)\n---"
     match = re.search(support_section_pattern, content, re.DOTALL)
     if not match:
-        print("Warning: Could not find '## Supported Features' section in README.md")
+        print("Warning: Could not find '## Supported Features' section in markdown.md")
         return
 
     # Build the new section content
@@ -98,13 +98,11 @@ def update_readme(dataframes: dict[str, pd.DataFrame]):
         table = df.replace({True: "✅", False: "❌"}).to_markdown(index=False)
         new_section += f"{table}\n\n"
 
-    new_section += "Note: the full list of supported features can be found [here](https://frame-check.github.io/frame-check/features/).\n\n---"
-
     # Replace the section with new content
     new_content = re.sub(support_section_pattern, new_section, content, flags=re.DOTALL)
 
-    # Write back to README
-    with open(readme_path, "w") as f:
+    # Write back to markdown
+    with open(markdown_path, "w") as f:
         f.write(new_content)
 
 
@@ -119,7 +117,7 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     doc = update_features_toml(_support_results)
-    # Update the README.md file with support information
+    # Update the markdown.md file with support information
     if doc:
         section_dfs = {}
         for section in doc:
@@ -145,7 +143,7 @@ def pytest_sessionfinish(session, exitstatus):
                 )
                 section_dfs[section] = df
         if section_dfs:
-            update_readme(section_dfs)
+            update_markdown(section_dfs)
         print()
         print()
 
