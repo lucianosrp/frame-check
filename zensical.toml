@@ -46,11 +46,11 @@ Home = "index.md"
 [[project.nav]]
 Features = [
     "summary.md",
-    "features/index.md",
-    "features/column_assignment_methods.md",
-    "features/column_removal_methods.md",
-    "features/dataframe_creation_methods.md",
-    "features/edge_cases.md",
+    # "features/index.md",
+    # "features/column_assignment_methods.md",
+    # "features/column_removal_methods.md",
+    # "features/dataframe_creation_methods.md",
+    # "features/edge_cases.md",
 ]
 
 [[project.nav]]
@@ -65,11 +65,8 @@ Contributing = [
 enabled = true
 separator = '\.'
 
-[project.plugins.gen-files]
-scripts = ["scripts/gen_features.py"]
-
-[project.plugins.mkdocstrings]
-enable_inventory = true
+# [project.plugins.gen-files]
+# scripts = ["scripts/gen_features.py"]
 
 [project.plugins.mkdocstrings.handlers.python]
 inventories = ["https://installer.readthedocs.io/en/stable/objects.inv"]
@@ -84,8 +81,8 @@ separate_signature = true
 "pymdownx.blocks.admonition" = {}
 
 [project.markdown_extensions.pymdownx.emoji]
-emoji_index = "material.extensions.emoji.twemoji"
-emoji_generator = "material.extensions.emoji.to_svg"
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
 
 [project.markdown_extensions.pymdownx.keys]
 separator = "+"
