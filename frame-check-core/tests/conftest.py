@@ -64,12 +64,11 @@ def pytest_runtest_makereport(item, call):
             )
 
 
-def update_markdown(dataframes: dict[str, pd.DataFrame]):
+def update_markdown(dataframes: dict[str, pd.DataFrame], markdown_path: str):
     """
     Update markdown support tables
     Update section under ## Supported Features header
     """
-    markdown_path = "../docs/features/summary.md"
     if not os.path.exists(markdown_path):
         print(f"Warning: {markdown_path} not found, skipping update.")
         return
@@ -78,14 +77,7 @@ def update_markdown(dataframes: dict[str, pd.DataFrame]):
     with open(markdown_path, "r") as f:
         content = f.read()
 
-    # Find the supported features section
-    support_section_pattern = r"# Supported Features\s*\n(.*?)\n---"
-    match = re.search(support_section_pattern, content, re.DOTALL)
-    if not match:
-        print("Warning: Could not find '## Supported Features' section in markdown.md")
-        return
-
-    # Build the new section content
+    # Build the new section content (tables only)
     new_section = "## Supported Features\n\n"
 
     # Add each section's table
@@ -98,8 +90,34 @@ def update_markdown(dataframes: dict[str, pd.DataFrame]):
         table = df.replace({True: "✅", False: "❌"}).to_markdown(index=False)
         new_section += f"{table}\n\n"
 
-    # Replace the section with new content
-    new_content = re.sub(support_section_pattern, new_section, content, flags=re.DOTALL)
+    # Add README-specific note if applicable (preserves it across updates)
+    if "README" in markdown_path:
+        new_section += """Note: the full list of supported features can be found [here](https://frame-check.github.io/frame-check/features/).\n\n"""
+
+    # NEW LOGIC: Use slicing to replace only the inner section content, preserving --- and footer
+    # Find the start of the header (fixed to ##, multiline search)
+    header_pattern = r"##\s*Supported Features"
+    match = re.search(header_pattern, content, re.MULTILINE)
+    if not match:
+        print(
+            f"Warning: Could not find '## Supported Features' section in {markdown_path}"
+        )
+        return
+
+    start = match.start()
+
+    from_start = content[start:]
+    dash_match = re.search(r"\n---", from_start)
+    if dash_match:
+        dash_pos = start + dash_match.start()
+        prefix = content[:start]
+        new_content = prefix + new_section + content[dash_pos:]
+    else:
+        print(
+            f"Warning: No '---' found after section in {markdown_path}; replacing to end."
+        )
+        prefix = content[:start]
+        new_content = prefix + new_section
 
     # Write back to markdown
     with open(markdown_path, "w") as f:
@@ -117,7 +135,8 @@ def pytest_sessionfinish(session, exitstatus):
         return
 
     doc = update_features_toml(_support_results)
-    # Update the markdown.md file with support information
+    # Update the markdown files with support information
+    # NOTE: Paths may need adjustment based on project structure (e.g., ../../README.md from tests/)
     if doc:
         section_dfs = {}
         for section in doc:
@@ -143,7 +162,10 @@ def pytest_sessionfinish(session, exitstatus):
                 )
                 section_dfs[section] = df
         if section_dfs:
-            update_markdown(section_dfs)
+            update_markdown(section_dfs, "../docs/features/index.md")
+            update_markdown(
+                section_dfs, "../README.md"
+            )  # Consider changing to "../../README.md" if needed
         print()
         print()
 
